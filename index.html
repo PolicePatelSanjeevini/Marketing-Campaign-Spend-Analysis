@@ -6,8 +6,8 @@
 <title>Meta Marketing Campaign Spend — Analysis &amp; Prediction</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';document.head.appendChild(s);"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);"></script>
 <style>
 /* ============================= DESIGN TOKENS ============================= */
 :root{
@@ -1524,7 +1524,26 @@ function rebuildEverything(){
 /* ---------------------------------------------------------------------
    15. INIT
    --------------------------------------------------------------------- */
-loadFromRaw(RAW_DATA);
+/* Wait for the CDN libraries (Chart.js + SheetJS) to be available before
+   the first render, so a slow/blocked CDN load can't throw
+   "Chart is not defined". Falls back to a bounded retry then renders anyway. */
+(function bootstrap(attempt){
+  if(window.Chart && window.XLSX){
+    if(window.Chart && !Chart.__v0Themed){
+      Chart.__v0Themed = true;
+      Chart.defaults.color = '#8b95a8';
+      Chart.defaults.font.family = "'Inter', sans-serif";
+      Chart.defaults.font.size = 11.5;
+      Chart.defaults.borderColor = '#232c40';
+      Chart.defaults.plugins.legend.labels.usePointStyle = true;
+      Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    }
+    loadFromRaw(RAW_DATA);
+    return;
+  }
+  if(attempt > 100){ loadFromRaw(RAW_DATA); return; } // ~10s cap, then try anyway
+  setTimeout(function(){ bootstrap(attempt + 1); }, 100);
+})(0);
 
 })();
 
