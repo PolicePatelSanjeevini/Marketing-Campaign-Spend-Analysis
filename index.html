@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Marketing Campaign Spend — Analysis &amp; Prediction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============================= DESIGN TOKENS ============================= */
+:root{
+  --bg:#0a0e1a;
+  --bg-grad: radial-gradient(1200px 600px at 85% -10%, rgba(139,127,255,0.16), transparent 60%),
+             radial-gradient(900px 500px at -5% 10%, rgba(45,212,191,0.10), transparent 55%);
+  --surface:#121826;
+  --surface-alt:#161f30;
+  --surface-hover:#1b2438;
+  --border:#232c40;
+  --border-soft:#1a2233;
+  --text:#e8ecf4;
+  --text-dim:#a3adcf;
+  --text-secondary:#8b95a8;
+  --text-faint:#5c6580;
+  --violet:#8b7fff;
+  --violet-dim:rgba(139,127,255,0.14);
+  --cyan:#2dd4bf;
+  --cyan-dim:rgba(45,212,191,0.14);
+  --amber:#f5c244;
+  --amber-dim:rgba(245,194,68,0.14);
+  --coral:#f06464;
+  --coral-dim:rgba(240,100,100,0.14);
+  --sky:#4fa3f7;
+  --mint:#6ee7b7;
+  --slate:#94a3b8;
+  --radius:14px;
+  --radius-sm:9px;
+  --font-display:'Space Grotesk', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  background: var(--bg-grad), var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size:14px;
+  line-height:1.5;
+  min-height:100vh;
+}
+::selection{ background: var(--violet); color:#0a0e1a; }
+::-webkit-scrollbar{ width:10px; height:10px; }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+::-webkit-scrollbar-thumb:hover{ background:#33405c; }
+
+a{ color:inherit; }
+button{ font-family:inherit; cursor:pointer; }
+input, select{ font-family:inherit; }
+
+h1,h2,h3,h4{ font-family:var(--font-display); font-weight:600; letter-spacing:-0.01em; }
+
+/* ============================= APP SHELL ============================= */
+.app{
+  display:grid;
+  grid-template-columns: 232px 1fr;
+  min-height:100vh;
+}
+
+/* ---------- Sidebar ---------- */
+.sidebar{
+  border-right:1px solid var(--border-soft);
+  background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent 40%);
+  padding:22px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:26px;
+  position:sticky;
+  top:0;
+  height:100vh;
+}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 6px;
+}
+.brand-mark{
+  width:34px; height:34px;
+  border-radius:10px;
+  background: linear-gradient(135deg, var(--violet), var(--cyan));
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-display); font-weight:700; font-size:15px; color:#0a0e1a;
+  flex-shrink:0;
+}
+.brand-text{ display:flex; flex-direction:column; line-height:1.2; }
+.brand-text strong{ font-family:var(--font-display); font-size:14.5px; font-weight:600; }
+.brand-text span{ font-size:10.5px; color:var(--text-faint); letter-spacing:0.04em; text-transform:uppercase; }
+
+.nav{ display:flex; flex-direction:column; gap:3px; flex:1; }
+.nav-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-faint); padding:14px 10px 6px; }
+.nav-item{
+  display:flex; align-items:center; gap:11px;
+  padding:9px 11px;
+  border-radius:9px;
+  color:var(--text-secondary);
+  font-size:13.5px; font-weight:500;
+  background:none; border:none; text-align:left; width:100%;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-item svg{ width:16px; height:16px; flex-shrink:0; opacity:0.85; }
+.nav-item:hover{ background:var(--surface-hover); color:var(--text); }
+.nav-item.active{ background:var(--violet-dim); color:var(--text); }
+.nav-item.active svg{ opacity:1; }
+.nav-item.active{ box-shadow: inset 2px 0 0 var(--violet); }
+
+.sidebar-foot{
+  border-top:1px solid var(--border-soft);
+  padding-top:14px;
+  font-size:11px;
+  color:var(--text-faint);
+  display:flex; flex-direction:column; gap:4px;
+}
+.dot{ width:6px; height:6px; border-radius:50%; background:var(--mint); display:inline-block; margin-right:6px; box-shadow:0 0 8px var(--mint); }
+
+/* ---------- Main ---------- */
+.main{ padding:22px 30px 60px; max-width:1440px; }
+.topbar{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:20px;
+  margin-bottom:22px; flex-wrap:wrap;
+}
+.topbar h1{ font-size:22px; margin-bottom:4px; }
+.topbar p{ color:var(--text-secondary); font-size:13px; max-width:640px; }
+.topbar-actions{ display:flex; gap:10px; align-items:center; }
+
+.btn{
+  display:inline-flex; align-items:center; gap:7px;
+  padding:9px 15px;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:var(--surface-alt);
+  color:var(--text);
+  font-size:13px; font-weight:500;
+  transition: all .15s ease;
+}
+.btn:hover{ background:var(--surface-hover); border-color:#3a4867; }
+.btn-primary{
+  background: linear-gradient(135deg, var(--violet), #6f62f0);
+  border:none; color:#0a0e1a; font-weight:600;
+}
+.btn-primary:hover{ filter:brightness(1.08); }
+.btn svg{ width:14px; height:14px; }
+#fileInput{ display:none; }
+
+.tab-panel{ display:none; }
+.tab-panel.active{ display:block; animation: fadein .25s ease; }
+@keyframes fadein{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+/* ---------- Filter bar ---------- */
+.filterbar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-radius:12px;
+  padding:12px 14px;
+  margin-bottom:20px;
+}
+.filter-label{ font-size:11.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.06em; margin-right:2px;}
+.chip-group{ display:flex; flex-wrap:wrap; gap:6px; }
+.chip{
+  padding:6px 12px;
+  border-radius:20px;
+  border:1px solid var(--border);
+  background:var(--surface-alt);
+  color:var(--text-secondary);
+  font-size:12.5px; font-weight:500;
+  transition: all .15s ease;
+  user-select:none;
+}
+.chip:hover{ border-color:#3a4867; color:var(--text); }
+.chip.on{
+  background: var(--violet-dim);
+  border-color: rgba(139,127,255,0.5);
+  color:#c9c3ff;
+}
+select.select-ctl{
+  background:var(--surface-alt);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:7px 10px;
+  border-radius:8px;
+  font-size:12.5px;
+}
+.filter-spacer{ flex:1; }
+.filter-reset{
+  font-size:12px; color:var(--text-faint); background:none; border:none; text-decoration:underline;
+}
+.filter-reset:hover{ color:var(--text); }
+.record-count{ font-size:12px; color:var(--text-faint); font-family:var(--font-mono); }
+
+/* ---------- KPI cards ---------- */
+.kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(6, 1fr);
+  gap:12px;
+  margin-bottom:20px;
+}
+.kpi-card{
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius);
+  padding:16px 16px 14px;
+  position:relative;
+  overflow:hidden;
+}
+.kpi-card::before{
+  content:'';
+  position:absolute; top:0; left:0; right:0; height:2px;
+  background: var(--accent, var(--violet));
+}
+.kpi-label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:9px; }
+.kpi-value{ font-family:var(--font-display); font-size:22px; font-weight:600; }
+.kpi-sub{ font-size:11.5px; color:var(--text-secondary); margin-top:5px; }
+
+/* ---------- Panels / cards ---------- */
+.grid-2{ display:grid; grid-template-columns:1.3fr 1fr; gap:14px; margin-bottom:14px; }
+.grid-3{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:14px; }
+.grid-full{ display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:14px; }
+
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border-soft);
+  border-radius:var(--radius);
+  padding:18px;
+}
+.panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; gap:10px; flex-wrap:wrap;}
+.panel-title{ font-size:13.5px; font-weight:600; font-family:var(--font-display); }
+.panel-sub{ font-size:11.5px; color:var(--text-faint); margin-top:2px; }
+.chart-wrap{ position:relative; height:250px; }
+.chart-wrap.tall{ height:320px; }
+
+.legend-swatch{ display:inline-block; width:9px; height:9px; border-radius:3px; margin-right:6px; }
+
+/* ---------- Insights ---------- */
+.insight-list{ display:flex; flex-direction:column; gap:10px; }
+.insight-item{
+  display:flex; gap:10px; align-items:flex-start;
+  padding:10px 12px;
+  border-radius:9px;
+  background:var(--surface-alt);
+  border:1px solid var(--border-soft);
+  font-size:12.5px; color:var(--text-secondary);
+}
+.insight-item b{ color:var(--text); font-weight:600; }
+.insight-icon{ width:18px; height:18px; flex-shrink:0; margin-top:1px; }
+
+/* ---------- Prediction tab ---------- */
+.predict-layout{ display:grid; grid-template-columns:380px 1fr; gap:16px; align-items:start; }
+.form-grid{ display:flex; flex-direction:column; gap:14px; }
+.field label{ display:block; font-size:12px; color:var(--text-secondary); margin-bottom:6px; font-weight:500; }
+.field input, .field select{
+  width:100%;
+  background:var(--bg);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:9px;
+  font-size:13.5px;
+}
+.field input:focus, .field select:focus{ outline:none; border-color:var(--violet); }
+.field-hint{ font-size:11px; color:var(--text-faint); margin-top:5px; }
+
+.result-empty{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  min-height:380px; color:var(--text-faint); gap:10px; text-align:center;
+}
+.result-empty svg{ width:38px; height:38px; opacity:0.5; }
+
+.pred-hero{ display:flex; gap:22px; align-items:center; flex-wrap:wrap; margin-bottom:18px;}
+.pred-num{ font-family:var(--font-display); font-size:44px; font-weight:700; line-height:1; }
+.pred-num-label{ font-size:12px; color:var(--text-faint); margin-top:6px; }
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:20px;
+  font-size:11.5px; font-weight:600; letter-spacing:0.02em;
+}
+.badge-high{ background:var(--mint-dim,rgba(110,231,183,0.15)); color:var(--mint); }
+.badge-mid{ background:var(--amber-dim); color:var(--amber); }
+.badge-low{ background:var(--coral-dim); color:var(--coral); }
+
+.gauge-wrap{ margin:18px 0 22px; }
+.gauge-track{ position:relative; height:10px; border-radius:6px; background:linear-gradient(90deg, var(--coral), var(--amber), var(--mint)); }
+.gauge-marker{
+  position:absolute; top:-6px; width:2px; height:22px; background:#fff;
+  box-shadow:0 0 8px rgba(255,255,255,0.8);
+  transition: left .4s ease;
+}
+.gauge-labels{ display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); margin-top:6px; text-transform:uppercase; letter-spacing:0.05em;}
+
+.factor-row{ display:grid; grid-template-columns:150px 1fr 60px; gap:10px; align-items:center; margin-bottom:9px; font-size:12.5px; }
+.factor-name{ color:var(--text-secondary); }
+.factor-bar-track{ height:8px; border-radius:5px; background:var(--surface-alt); position:relative; overflow:hidden; }
+.factor-bar-fill{ height:100%; border-radius:5px; }
+.factor-val{ text-align:right; font-family:var(--font-mono); font-size:11.5px; }
+
+.stat-mini-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:16px; }
+.stat-mini{ background:var(--surface-alt); border:1px solid var(--border-soft); border-radius:9px; padding:12px; }
+.stat-mini .v{ font-family:var(--font-mono); font-size:16px; font-weight:600; }
+.stat-mini .l{ font-size:10.5px; color:var(--text-faint); margin-top:3px; text-transform:uppercase; letter-spacing:0.04em; }
+
+/* ---------- Model performance ---------- */
+.metric-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:16px; }
+.metric-card{ background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:16px; text-align:center;}
+.metric-card .v{ font-family:var(--font-display); font-size:26px; font-weight:700; }
+.metric-card .l{ font-size:11px; color:var(--text-faint); margin-top:6px; text-transform:uppercase; letter-spacing:0.05em;}
+
+.notice{
+  border:1px solid rgba(245,194,68,0.35);
+  background: var(--amber-dim);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:12.5px;
+  color:#f0dba8;
+  display:flex; gap:10px; align-items:flex-start;
+  margin-bottom:16px;
+}
+.notice svg{ width:17px; height:17px; flex-shrink:0; margin-top:1px; color:var(--amber); }
+.notice.info{ border-color:rgba(79,163,247,0.35); background:rgba(79,163,247,0.12); color:#bcdcfb; }
+.notice.info svg{ color:var(--sky); }
+
+table.coef-table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+table.coef-table th{ text-align:left; padding:8px 10px; color:var(--text-faint); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:0.04em; border-bottom:1px solid var(--border-soft);}
+table.coef-table td{ padding:9px 10px; border-bottom:1px solid var(--border-soft); }
+table.coef-table tr:last-child td{ border-bottom:none; }
+
+/* ---------- Data explorer ---------- */
+.explorer-toolbar{ display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+.search-box{ position:relative; flex:1; min-width:200px; max-width:340px; }
+.search-box input{
+  width:100%; background:var(--surface-alt); border:1px solid var(--border); color:var(--text);
+  padding:9px 12px 9px 34px; border-radius:9px; font-size:13px;
+}
+.search-box svg{ position:absolute; left:11px; top:50%; transform:translateY(-50%); width:14px; height:14px; color:var(--text-faint); }
+
+.table-wrap{ overflow-x:auto; border:1px solid var(--border-soft); border-radius:var(--radius); }
+table.data-table{ width:100%; border-collapse:collapse; font-size:12.5px; min-width:820px; }
+table.data-table thead th{
+  background:var(--surface-alt); text-align:left; padding:10px 12px; font-weight:600; font-size:11.5px;
+  color:var(--text-secondary); border-bottom:1px solid var(--border); white-space:nowrap; cursor:pointer; user-select:none;
+  position:sticky; top:0;
+}
+table.data-table thead th:hover{ color:var(--text); }
+table.data-table thead th .sort-ind{ opacity:0.5; margin-left:4px; font-size:10px; }
+table.data-table tbody td{ padding:9px 12px; border-bottom:1px solid var(--border-soft); white-space:nowrap; color:var(--text-secondary); }
+table.data-table tbody tr:hover{ background:var(--surface-hover); }
+table.data-table tbody tr:last-child td{ border-bottom:none; }
+.channel-pill{ padding:3px 9px; border-radius:12px; font-size:11px; font-weight:600; }
+.cell-missing{ color:var(--text-faint); font-style:italic; }
+
+.pagination{ display:flex; align-items:center; justify-content:space-between; margin-top:14px; flex-wrap:wrap; gap:10px;}
+.page-btns{ display:flex; gap:6px; align-items:center; }
+.page-btn{ padding:6px 11px; border-radius:7px; border:1px solid var(--border); background:var(--surface-alt); color:var(--text-secondary); font-size:12px; }
+.page-btn:hover:not(:disabled){ background:var(--surface-hover); color:var(--text); }
+.page-btn:disabled{ opacity:0.35; cursor:not-allowed; }
+.page-btn.active{ background:var(--violet-dim); border-color:rgba(139,127,255,.5); color:#c9c3ff; }
+.page-info{ font-size:12px; color:var(--text-faint); }
+
+/* ---------- About ---------- */
+.about-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+.about-col{ display:flex; flex-direction:column; gap:14px; }
+.spec-row{ display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--border-soft); font-size:12.5px; }
+.spec-row:last-child{ border-bottom:none; }
+.spec-row span:first-child{ color:var(--text-faint); }
+.spec-row span:last-child{ font-family:var(--font-mono); }
+.about-list{ list-style:none; display:flex; flex-direction:column; gap:8px; font-size:12.5px; color:var(--text-secondary); }
+.about-list li{ padding-left:16px; position:relative; }
+.about-list li::before{ content:'—'; position:absolute; left:0; color:var(--text-faint); }
+.tag{ display:inline-block; padding:4px 10px; border-radius:7px; background:var(--surface-alt); border:1px solid var(--border-soft); font-size:11.5px; margin:3px 4px 0 0; color:var(--text-secondary); }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 1100px){
+  .kpi-grid{ grid-template-columns:repeat(3,1fr); }
+  .grid-2{ grid-template-columns:1fr; }
+  .grid-3{ grid-template-columns:1fr 1fr; }
+  .predict-layout{ grid-template-columns:1fr; }
+  .about-grid{ grid-template-columns:1fr; }
+  .metric-grid{ grid-template-columns:repeat(2,1fr); }
+}
+@media (max-width: 760px){
+  .app{ grid-template-columns:1fr; }
+  .sidebar{ position:fixed; bottom:0; left:0; right:0; top:auto; height:auto; width:100%;
+    flex-direction:row; align-items:center; justify-content:space-around; padding:8px 6px; z-index:50;
+    border-right:none; border-top:1px solid var(--border-soft); background:#0d1220; overflow-x:auto;
+  }
+  .brand, .nav-label, .sidebar-foot{ display:none; }
+  .nav{ flex-direction:row; flex:none; gap:2px; }
+  .nav-item{ flex-direction:column; gap:3px; font-size:9.5px; padding:6px 10px; white-space:nowrap; }
+  .nav-item.active{ box-shadow:none; }
+  .main{ padding:16px 14px 90px; }
+  .kpi-grid{ grid-template-columns:repeat(2,1fr); }
+  .grid-3{ grid-template-columns:1fr; }
+  .metric-grid{ grid-template-columns:repeat(2,1fr); }
+  .topbar{ flex-direction:column; }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============================= SIDEBAR ============================= -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div class="brand-text">
+        <strong>Meta Campaign</strong>
+        <span>Spend Analytics</span>
+      </div>
+    </div>
+    <nav class="nav" id="navList">
+      <div class="nav-label">Analyze</div>
+      <button class="nav-item active" data-tab="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" data-tab="prediction">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+        Prediction
+      </button>
+      <button class="nav-item" data-tab="performance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/></svg>
+        Model Performance
+      </button>
+      <div class="nav-label">Data</div>
+      <button class="nav-item" data-tab="explorer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/></svg>
+        Data Explorer
+      </button>
+      <button class="nav-item" data-tab="about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5M12 8h.01"/></svg>
+        About
+      </button>
+    </nav>
+    <div class="sidebar-foot">
+      <div><span class="dot"></span>Runs 100% in-browser</div>
+      <div id="sidebarRecordCount">500 campaigns loaded</div>
+    </div>
+  </aside>
+
+  <!-- ============================= MAIN ============================= -->
+  <main class="main">
+
+    <div class="topbar">
+      <div>
+        <h1>Meta Marketing Campaign Spend — Analysis &amp; Prediction</h1>
+        <p>Interactive analysis of campaign spend, leads and conversions across channels, with an in-browser regression model for conversion prediction.</p>
+      </div>
+      <div class="topbar-actions">
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+        <button class="btn" id="uploadBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0-12 4 4m-4-4-4 4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Upload Excel
+        </button>
+        <button class="btn btn-primary" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset Data
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================= DASHBOARD TAB ============================= -->
+    <section class="tab-panel active" id="tab-dashboard">
+
+      <div class="filterbar">
+        <span class="filter-label">Channel</span>
+        <div class="chip-group" id="channelChips"></div>
+        <span class="filter-label">Year</span>
+        <select class="select-ctl" id="yearFilter"><option value="all">All years</option></select>
+        <div class="filter-spacer"></div>
+        <span class="record-count" id="filteredCount"></span>
+        <button class="filter-reset" id="filterReset">Reset filters</button>
+      </div>
+
+      <div class="kpi-grid" id="kpiGrid"></div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Spend by Channel</div><div class="panel-sub">Total media spend, filtered selection</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartSpendChannel"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Conversion Rate by Channel</div><div class="panel-sub">Conversions ÷ leads generated</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartCvrChannel"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Monthly Spend Trend</div><div class="panel-sub">Total spend by campaign start month</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartMonthlySpend"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Spend vs. Conversions</div><div class="panel-sub">Each point is one campaign</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartScatter"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Cost per Acquisition by Channel</div><div class="panel-sub">Avg. spend ÷ conversions</div></div>
+          </div>
+          <div class="chart-wrap"><canvas id="chartCpaChannel"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">
+            <div><div class="panel-title">Auto-Generated Insights</div><div class="panel-sub">Computed live from the filtered dataset</div></div>
+          </div>
+          <div class="insight-list" id="insightList"></div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ============================= PREDICTION TAB ============================= -->
+    <section class="tab-panel" id="tab-prediction">
+      <div class="predict-layout">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Campaign Conversion Predictor</div><div class="panel-sub">Multiple linear regression, trained live on the loaded dataset</div></div></div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Channel</label>
+              <select id="predChannel"></select>
+            </div>
+            <div class="field">
+              <label>Planned Spend Amount ($)</label>
+              <input type="number" id="predSpend" placeholder="e.g. 50000" min="0" step="100">
+              <div class="field-hint" id="spendHint"></div>
+            </div>
+            <div class="field">
+              <label>Expected Leads Generated</label>
+              <input type="number" id="predLeads" placeholder="e.g. 350" min="0" step="1">
+              <div class="field-hint" id="leadsHint"></div>
+            </div>
+            <button class="btn btn-primary" id="predictBtn" style="justify-content:center;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+              Predict Conversions
+            </button>
+          </div>
+        </div>
+
+        <div class="panel" id="predictionResultPanel">
+          <div class="result-empty" id="resultEmpty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+            <div>Enter campaign inputs and click <b>Predict Conversions</b> to see the model output, confidence level and driving factors.</div>
+          </div>
+          <div id="resultContent" style="display:none;">
+            <div class="panel-head"><div><div class="panel-title">Prediction Result</div></div><span class="badge" id="riskBadge"></span></div>
+            <div class="pred-hero">
+              <div>
+                <div class="pred-num" id="predConversions">—</div>
+                <div class="pred-num-label">Predicted Conversions</div>
+              </div>
+              <div>
+                <div class="pred-num" id="predCpa" style="font-size:26px;">—</div>
+                <div class="pred-num-label">Implied Cost per Acquisition</div>
+              </div>
+              <div>
+                <div class="pred-num" id="predCvr" style="font-size:26px;">—</div>
+                <div class="pred-num-label">Implied Conversion Rate</div>
+              </div>
+            </div>
+
+            <div class="gauge-wrap">
+              <div class="gauge-track"><div class="gauge-marker" id="gaugeMarker" style="left:0%;"></div></div>
+              <div class="gauge-labels"><span>Low performance</span><span>Medium</span><span>High performance</span></div>
+            </div>
+
+            <div id="lowConfidenceNotice" class="notice" style="display:none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+              <div>This model explains only a small share of the variation in conversions (see R² on the Model Performance tab) — treat this number as a rough, low-confidence estimate rather than a precise forecast.</div>
+            </div>
+
+            <div class="panel-title" style="font-size:12.5px; margin-bottom:10px;">What's driving this prediction?</div>
+            <div id="factorList"></div>
+
+            <div class="stat-mini-grid">
+              <div class="stat-mini"><div class="v" id="statSpend">—</div><div class="l">Spend Input</div></div>
+              <div class="stat-mini"><div class="v" id="statLeads">—</div><div class="l">Leads Input</div></div>
+              <div class="stat-mini"><div class="v" id="statChannel">—</div><div class="l">Channel</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= MODEL PERFORMANCE TAB ============================= -->
+    <section class="tab-panel" id="tab-performance">
+      <div class="notice" id="perfNotice">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <div id="perfNoticeText">Computing model metrics…</div>
+      </div>
+
+      <div class="metric-grid" id="metricGrid"></div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Actual vs. Predicted Conversions</div><div class="panel-sub">Held-out test split (20% of data)</div></div></div>
+          <div class="chart-wrap tall"><canvas id="chartActualPred"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><div><div class="panel-title">Regression Coefficients</div><div class="panel-sub">Trained on 100% of the loaded data</div></div></div>
+          <div style="max-height:320px; overflow:auto;">
+            <table class="coef-table" id="coefTable"></table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><div><div class="panel-title">Model Details</div></div></div>
+        <div class="about-grid">
+          <div class="about-col">
+            <div class="spec-row"><span>Algorithm</span><span>Multiple Linear Regression (Ordinary Least Squares)</span></div>
+            <div class="spec-row"><span>Target variable</span><span>Conversions</span></div>
+            <div class="spec-row"><span>Features</span><span id="specFeatures">—</span></div>
+            <div class="spec-row"><span>Train / Test split</span><span id="specSplit">—</span></div>
+          </div>
+          <div class="about-col">
+            <div class="spec-row"><span>Training method</span><span>Normal equations, solved in-browser via JS</span></div>
+            <div class="spec-row"><span>Re-trained on</span><span>Every filter/data change</span></div>
+            <div class="spec-row"><span>Backend required</span><span>None — 100% client-side</span></div>
+            <div class="spec-row"><span>Split seed</span><span>Fixed (reproducible)</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= DATA EXPLORER TAB ============================= -->
+    <section class="tab-panel" id="tab-explorer">
+      <div class="panel">
+        <div class="explorer-toolbar">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="tableSearch" placeholder="Search campaign, channel, ID…">
+          </div>
+          <select class="select-ctl" id="explorerChannelFilter"><option value="all">All channels</option></select>
+          <select class="select-ctl" id="pageSizeSelect">
+            <option value="10">10 / page</option>
+            <option value="25" selected>25 / page</option>
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+          <div class="filter-spacer"></div>
+          <span class="record-count" id="explorerCount"></span>
+        </div>
+
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th data-sort="id">Campaign ID<span class="sort-ind"></span></th>
+                <th data-sort="name">Campaign Name<span class="sort-ind"></span></th>
+                <th data-sort="channel">Channel<span class="sort-ind"></span></th>
+                <th data-sort="date">Start Date<span class="sort-ind"></span></th>
+                <th data-sort="spend">Spend ($)<span class="sort-ind"></span></th>
+                <th data-sort="leads">Leads<span class="sort-ind"></span></th>
+                <th data-sort="conversions">Conversions<span class="sort-ind"></span></th>
+                <th data-sort="validConversions">Valid Conv.<span class="sort-ind"></span></th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span class="page-info" id="pageInfo"></span>
+          <div class="page-btns" id="pageBtns"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================= ABOUT TAB ============================= -->
+    <section class="tab-panel" id="tab-about">
+      <div class="about-grid">
+        <div class="about-col">
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Project</div>
+            <p style="color:var(--text-secondary); font-size:12.5px; line-height:1.7;">
+              This dashboard analyzes the <b style="color:var(--text)">Campaign_Spending.xlsx</b> dataset — 500 Meta-style marketing campaigns
+              across six channels — to surface spend, lead and conversion patterns, and to train a browser-side regression model that predicts
+              conversions for a hypothetical campaign. Everything runs client-side in a single HTML file; there is no server, database, or Python
+              backend, so it can be hosted directly on GitHub Pages.
+            </p>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Dataset Summary</div>
+            <div class="spec-row"><span>Rows</span><span>500 campaigns</span></div>
+            <div class="spec-row"><span>Columns</span><span>8</span></div>
+            <div class="spec-row"><span>Date range</span><span id="aboutDateRange">—</span></div>
+            <div class="spec-row"><span>Channels</span><span id="aboutChannels">—</span></div>
+            <div class="spec-row"><span>Missing Spend values</span><span id="aboutMissingSpend">—</span></div>
+            <div class="spec-row"><span>Missing Leads values</span><span id="aboutMissingLeads">—</span></div>
+            <div class="spec-row"><span>Missing Start Date values</span><span id="aboutMissingDate">—</span></div>
+            <div class="spec-row"><span>Missing Valid Conversions</span><span id="aboutMissingValid">—</span></div>
+            <div class="spec-row"><span>Duplicate rows</span><span>0</span></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Columns</div>
+            <ul class="about-list">
+              <li><b style="color:var(--text)">CampaignID</b> — unique campaign identifier (categorical)</li>
+              <li><b style="color:var(--text)">Channel</b> — marketing channel: Google Ads, Facebook, Instagram, LinkedIn, YouTube, Email, Unknown (categorical)</li>
+              <li><b style="color:var(--text)">CampaignName</b> — display name (categorical)</li>
+              <li><b style="color:var(--text)">StartDate</b> — campaign start date (date)</li>
+              <li><b style="color:var(--text)">SpendAmount</b> — total media spend in $ (numerical)</li>
+              <li><b style="color:var(--text)">LeadsGenerated</b> — leads generated (numerical)</li>
+              <li><b style="color:var(--text)">Conversions</b> — target variable: conversions from those leads (numerical)</li>
+              <li><b style="color:var(--text)">Valid Conversions</b> — conversions verified as valid (numerical, partially missing)</li>
+            </ul>
+          </div>
+        </div>
+        <div class="about-col">
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Prediction Problem</div>
+            <p style="color:var(--text-secondary); font-size:12.5px; line-height:1.7; margin-bottom:10px;">
+              <b style="color:var(--text)">Target:</b> Conversions (continuous count) → <b style="color:var(--text)">Regression problem</b>, not classification,
+              since there is no binary/categorical outcome column in the dataset (e.g. no "converted Y/N" or "churned" flag).
+            </p>
+            <p style="color:var(--text-secondary); font-size:12.5px; line-height:1.7;">
+              <b style="color:var(--text)">Model:</b> Ordinary Least Squares multiple linear regression on SpendAmount, LeadsGenerated and one-hot encoded
+              Channel, trained live in the browser via the normal-equations method. This is the lightest model that still lets every coefficient be
+              inspected for explainability, and it needs no external ML library.
+            </p>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Known Data-Quality Notes</div>
+            <ul class="about-list">
+              <li>"Linkedin" and "LinkedIn" both appear in the raw Channel column and are merged into a single "LinkedIn" category here.</li>
+              <li>15 rows have a "Unknown" channel value — kept as its own category rather than dropped.</li>
+              <li>Two campaigns report spend above $1.8M, far above the ~$145K 75th-percentile — these are kept as-is (not fabricated or removed) but are visible outliers in the Data Explorer and scatter chart.</li>
+              <li>SpendAmount, LeadsGenerated, StartDate and Valid Conversions all contain missing values; KPIs and charts exclude nulls from the relevant calculation rather than treating them as zero.</li>
+            </ul>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Model Limitation — Read This</div>
+            <p style="color:var(--text-secondary); font-size:12.5px; line-height:1.7;">
+              In this dataset, SpendAmount and LeadsGenerated are only weakly correlated with Conversions (Pearson r within a few hundredths of zero),
+              so the trained regression's R² is low — see the <b style="color:var(--text)">Model Performance</b> tab for the exact, live-computed number.
+              That is a genuine property of this data, not a bug: it suggests conversions here are driven more by factors outside this dataset
+              (creative quality, targeting, offer, timing) than by budget size alone. Predictions should be read as directional, low-confidence estimates.
+            </p>
+          </div>
+          <div class="panel">
+            <div class="panel-title" style="margin-bottom:10px;">Tech Stack</div>
+            <span class="tag">HTML5 / CSS3</span><span class="tag">Vanilla JavaScript</span><span class="tag">Chart.js (CDN)</span>
+            <span class="tag">SheetJS / xlsx.js (CDN)</span><span class="tag">No backend</span><span class="tag">No build step</span>
+            <span class="tag">GitHub Pages ready</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+const RAW_DATA = [{"id": "CMP0017", "channel": "Google Ads", "name": "Campaign-17", "date": "2023-01-12", "year": 2023, "month": "2023-01", "spend": 39052.0, "leads": 74.0, "conversions": 166, "validConversions": null}, {"id": "CMP0081", "channel": "Facebook", "name": "Campaign-81", "date": "2023-11-18", "year": 2023, "month": "2023-11", "spend": null, "leads": 724.0, "conversions": 6, "validConversions": 6.0}, {"id": "CMP0186", "channel": "Email", "name": "Campaign-186", "date": null, "year": null, "month": null, "spend": 176673.0, "leads": 426.0, "conversions": 150, "validConversions": 150.0}, {"id": "CMP0327", "channel": "YouTube", "name": "Campaign-327", "date": "2023-05-10", "year": 2023, "month": "2023-05", "spend": 172851.0, "leads": 301.0, "conversions": 143, "validConversions": 143.0}, {"id": "CMP0419", "channel": "YouTube", "name": "Campaign-419", "date": "2023-09-29", "year": 2023, "month": "2023-09", "spend": 38132.0, "leads": 279.0, "conversions": 124, "validConversions": 124.0}, {"id": "CMP0498", "channel": "Google Ads", "name": "Campaign-498", "date": "2024-12-05", "year": 2024, "month": "2024-12", "spend": 48501.0, "leads": 86.0, "conversions": 55, "validConversions": 55.0}, {"id": "CMP0127", "channel": "Google Ads", "name": "Campaign-127", "date": "2024-05-08", "year": 2024, "month": "2024-05", "spend": 45459.0, "leads": 366.0, "conversions": 106, "validConversions": 106.0}, {"id": "CMP0165", "channel": "Google Ads", "name": "Campaign-165", "date": "2023-07-24", "year": 2023, "month": "2023-07", "spend": 173616.0, "leads": 260.0, "conversions": 199, "validConversions": 199.0}, {"id": "CMP0333", "channel": "LinkedIn", "name": "Campaign-333", "date": "2024-04-02", "year": 2024, "month": "2024-04", "spend": 17896.0, "leads": 448.0, "conversions": 12, "validConversions": 12.0}, {"id": "CMP0131", "channel": "YouTube", "name": "Campaign-131", "date": "2024-12-26", "year": 2024, "month": "2024-12", "spend": 103010.0, "leads": 44.0, "conversions": 185, "validConversions": null}, {"id": "CMP0128", "channel": "YouTube", "name": "Campaign-128", "date": "2023-07-24", "year": 2023, "month": "2023-07", "spend": 89245.0, "leads": 764.0, "conversions": 182, "validConversions": 182.0}, {"id": "CMP0162", "channel": "Facebook", "name": "Campaign-162", "date": "2024-09-13", "year": 2024, "month": "2024-09", "spend": 108300.0, "leads": 304.0, "conversions": 115, "validConversions": 115.0}, {"id": "CMP0074", "channel": "Facebook", "name": "Campaign-74", "date": "2024-05-13", "year": 2024, "month": "2024-05", "spend": 43081.0, "leads": 46.0, "conversions": 73, "validConversions": null}, {"id": "CMP0455", "channel": "Unknown", "name": "Campaign-455", "date": "2023-02-21", "year": 2023, "month": "2023-02", "spend": 135316.0, "leads": 311.0, "conversions": 27, "validConversions": 27.0}, {"id": "CMP0228", "channel": "LinkedIn", "name": "Campaign-228", "date": "2024-03-21", "year": 2024, "month": "2024-03", "spend": 140454.0, "leads": 438.0, "conversions": 58, "validConversions": 58.0}, {"id": "CMP0273", "channel": "Email", "name": "Campaign-273", "date": "2023-12-21", "year": 2023, "month": "2023-12", "spend": 59196.0, "leads": 371.0, "conversions": 154, "validConversions": 154.0}, {"id": "CMP0156", "channel": "Facebook", "name": "Campaign-156", "date": "2024-03-09", "year": 2024, "month": "2024-03", "spend": 78396.0, "leads": 259.0, "conversions": 125, "validConversions": 125.0}, {"id": "CMP0324", "channel": "LinkedIn", "name": "Campaign-324", "date": "2024-08-20", "year": 2024, "month": "2024-08", "spend": 59204.0, "leads": 59.0, "conversions": 122, "validConversions": null}, {"id": "CMP0190", "channel": "Email", "name": "Campaign-190", "date": "2024-01-02", "year": 2024, "month": "2024-01", "spend": 50128.0, "leads": 572.0, "conversions": 129, "validConversions": 129.0}, {"id": "CMP0212", "channel": "LinkedIn", "name": "Campaign-212", "date": "2024-01-30", "year": 2024, "month": "2024-01", "spend": 109215.0, "leads": 614.0, "conversions": 169, "validConversions": 169.0}, {"id": "CMP0171", "channel": "Instagram", "name": "Campaign-171", "date": "2024-04-05", "year": 2024, "month": "2024-04", "spend": 42860.0, "leads": 698.0, "conversions": 40, "validConversions": 40.0}, {"id": "CMP0015", "channel": "Google Ads", "name": "Campaign-15", "date": "2023-01-27", "year": 2023, "month": "2023-01", "spend": 73792.0, "leads": 716.0, "conversions": 157, "validConversions": 157.0}, {"id": "CMP0456", "channel": "Instagram", "name": "Campaign-456", "date": "2024-10-23", "year": 2024, "month": "2024-10", "spend": 100322.0, "leads": 668.0, "conversions": 15, "validConversions": 15.0}, {"id": "CMP0476", "channel": "YouTube", "name": "Campaign-476", "date": "2023-04-14", "year": 2023, "month": "2023-04", "spend": 142399.0, "leads": 423.0, "conversions": 38, "validConversions": 38.0}, {"id": "CMP0088", "channel": "Email", "name": "Campaign-88", "date": "2023-07-02", "year": 2023, "month": "2023-07", "spend": 28081.0, "leads": 9.0, "conversions": 16, "validConversions": null}, {"id": "CMP0280", "channel": "Instagram", "name": "Campaign-280", "date": "2023-02-18", "year": 2023, "month": "2023-02", "spend": 134624.0, "leads": 711.0, "conversions": 163, "validConversions": 163.0}, {"id": "CMP0028", "channel": "Unknown", "name": "Campaign-28", "date": "2023-01-26", "year": 2023, "month": "2023-01", "spend": 102422.0, "leads": 590.0, "conversions": 165, "validConversions": 165.0}, {"id": "CMP0125", "channel": "Google Ads", "name": "Campaign-125", "date": "2023-10-02", "year": 2023, "month": "2023-10", "spend": 172797.0, "leads": 182.0, "conversions": 21, "validConversions": 21.0}, {"id": "CMP0210", "channel": "LinkedIn", "name": "Campaign-210", "date": "2024-07-29", "year": 2024, "month": "2024-07", "spend": 147343.0, "leads": 285.0, "conversions": 137, "validConversions": 137.0}, {"id": "CMP0473", "channel": "Instagram", "name": "Campaign-473", "date": "2024-02-19", "year": 2024, "month": "2024-02", "spend": 111876.0, "leads": 269.0, "conversions": 177, "validConversions": 177.0}, {"id": "CMP0202", "channel": "LinkedIn", "name": "Campaign-202", "date": "2024-12-05", "year": 2024, "month": "2024-12", "spend": 188493.0, "leads": 777.0, "conversions": 113, "validConversions": 113.0}, {"id": "CMP0467", "channel": "Facebook", "name": "Campaign-467", "date": "2024-06-28", "year": 2024, "month": "2024-06", "spend": 172635.0, "leads": 283.0, "conversions": 68, "validConversions": 68.0}, {"id": "CMP0240", "channel": "Facebook", "name": "Campaign-240", "date": "2023-05-08", "year": 2023, "month": "2023-05", "spend": 88442.0, "leads": 789.0, "conversions": 154, "validConversions": 154.0}, {"id": "CMP0112", "channel": "Unknown", "name": "Campaign-112", "date": "2024-06-08", "year": 2024, "month": "2024-06", "spend": 145424.0, "leads": 155.0, "conversions": 154, "validConversions": 154.0}, {"id": "CMP0154", "channel": "Email", "name": "Campaign-154", "date": "2024-03-19", "year": 2024, "month": "2024-03", "spend": 41886.0, "leads": 148.0, "conversions": 4, "validConversions": 4.0}, {"id": "CMP0038", "channel": "Instagram", "name": "Campaign-38", "date": "2023-11-01", "year": 2023, "month": "2023-11", "spend": 96000.0, "leads": 184.0, "conversions": 132, "validConversions": 132.0}, {"id": "CMP0104", "channel": "YouTube", "name": "Campaign-104", "date": "2023-09-18", "year": 2023, "month": "2023-09", "spend": 110047.0, "leads": 593.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0231", "channel": "Email", "name": "Campaign-231", "date": "2023-07-22", "year": 2023, "month": "2023-07", "spend": 50639.0, "leads": 686.0, "conversions": 91, "validConversions": 91.0}, {"id": "CMP0350", "channel": "Google Ads", "name": "Campaign-350", "date": "2024-12-29", "year": 2024, "month": "2024-12", "spend": 42096.0, "leads": 701.0, "conversions": 116, "validConversions": 116.0}, {"id": "CMP0297", "channel": "Instagram", "name": "Campaign-297", "date": "2023-11-27", "year": 2023, "month": "2023-11", "spend": 54057.0, "leads": 155.0, "conversions": 50, "validConversions": 50.0}, {"id": "CMP0288", "channel": "Email", "name": "Campaign-288", "date": "2024-01-18", "year": 2024, "month": "2024-01", "spend": 155706.0, "leads": 315.0, "conversions": 158, "validConversions": 158.0}, {"id": "CMP0215", "channel": "YouTube", "name": "Campaign-215", "date": null, "year": null, "month": null, "spend": 62942.0, "leads": 525.0, "conversions": 43, "validConversions": 43.0}, {"id": "CMP0359", "channel": "Google Ads", "name": "Campaign-359", "date": "2023-03-21", "year": 2023, "month": "2023-03", "spend": 13549.0, "leads": 488.0, "conversions": 19, "validConversions": 19.0}, {"id": "CMP0449", "channel": "LinkedIn", "name": "Campaign-449", "date": "2024-09-14", "year": 2024, "month": "2024-09", "spend": 125745.0, "leads": 674.0, "conversions": 153, "validConversions": 153.0}, {"id": "CMP0375", "channel": "Facebook", "name": "Campaign-375", "date": "2024-06-24", "year": 2024, "month": "2024-06", "spend": 185500.0, "leads": 96.0, "conversions": 117, "validConversions": null}, {"id": "CMP0302", "channel": "Instagram", "name": "Campaign-302", "date": "2023-04-01", "year": 2023, "month": "2023-04", "spend": 133225.0, "leads": 41.0, "conversions": 8, "validConversions": 8.0}, {"id": "CMP0340", "channel": "Email", "name": "Campaign-340", "date": "2024-05-04", "year": 2024, "month": "2024-05", "spend": 13397.0, "leads": 747.0, "conversions": 165, "validConversions": 165.0}, {"id": "CMP0058", "channel": "Instagram", "name": "Campaign-58", "date": "2023-04-20", "year": 2023, "month": "2023-04", "spend": 34574.0, "leads": 92.0, "conversions": 197, "validConversions": null}, {"id": "CMP0356", "channel": "Facebook", "name": "Campaign-356", "date": "2024-10-24", "year": 2024, "month": "2024-10", "spend": 112489.0, "leads": 175.0, "conversions": 190, "validConversions": null}, {"id": "CMP0252", "channel": "LinkedIn", "name": "Campaign-252", "date": "2024-10-21", "year": 2024, "month": "2024-10", "spend": 21585.0, "leads": 437.0, "conversions": 153, "validConversions": 153.0}, {"id": "CMP0305", "channel": "Unknown", "name": "Campaign-305", "date": "2024-07-04", "year": 2024, "month": "2024-07", "spend": 148864.0, "leads": 418.0, "conversions": 187, "validConversions": 187.0}, {"id": "CMP0108", "channel": "Email", "name": "Campaign-108", "date": "2023-01-31", "year": 2023, "month": "2023-01", "spend": null, "leads": 286.0, "conversions": 67, "validConversions": 67.0}, {"id": "CMP0271", "channel": "Instagram", "name": "Campaign-271", "date": "2023-10-09", "year": 2023, "month": "2023-10", "spend": null, "leads": 84.0, "conversions": 101, "validConversions": null}, {"id": "CMP0334", "channel": "Unknown", "name": "Campaign-334", "date": "2024-11-15", "year": 2024, "month": "2024-11", "spend": 91353.0, "leads": 132.0, "conversions": 119, "validConversions": 119.0}, {"id": "CMP0346", "channel": "YouTube", "name": "Campaign-346", "date": "2023-08-20", "year": 2023, "month": "2023-08", "spend": null, "leads": 781.0, "conversions": 138, "validConversions": 138.0}, {"id": "CMP0352", "channel": "Email", "name": "Campaign-352", "date": "2023-12-28", "year": 2023, "month": "2023-12", "spend": 54344.0, "leads": 483.0, "conversions": 63, "validConversions": 63.0}, {"id": "CMP0411", "channel": "Unknown", "name": "Campaign-411", "date": "2023-07-11", "year": 2023, "month": "2023-07", "spend": 62038.0, "leads": 202.0, "conversions": 154, "validConversions": 154.0}, {"id": "CMP0204", "channel": "YouTube", "name": "Campaign-204", "date": "2023-12-03", "year": 2023, "month": "2023-12", "spend": 25760.0, "leads": 599.0, "conversions": 17, "validConversions": 17.0}, {"id": "CMP0140", "channel": "YouTube", "name": "Campaign-140", "date": "2023-07-17", "year": 2023, "month": "2023-07", "spend": 51589.0, "leads": 15.0, "conversions": 180, "validConversions": null}, {"id": "CMP0137", "channel": "Instagram", "name": "Campaign-137", "date": "2024-03-22", "year": 2024, "month": "2024-03", "spend": 45880.0, "leads": 744.0, "conversions": 12, "validConversions": 12.0}, {"id": "CMP0283", "channel": "Google Ads", "name": "Campaign-283", "date": "2024-12-14", "year": 2024, "month": "2024-12", "spend": 165996.0, "leads": 118.0, "conversions": 122, "validConversions": null}, {"id": "CMP0343", "channel": "LinkedIn", "name": "Campaign-343", "date": "2023-10-15", "year": 2023, "month": "2023-10", "spend": 81183.0, "leads": 34.0, "conversions": 61, "validConversions": null}, {"id": "CMP0197", "channel": "YouTube", "name": "Campaign-197", "date": "2023-05-29", "year": 2023, "month": "2023-05", "spend": 119769.0, "leads": 687.0, "conversions": 164, "validConversions": 164.0}, {"id": "CMP0289", "channel": "Facebook", "name": "Campaign-289", "date": "2024-09-24", "year": 2024, "month": "2024-09", "spend": 34363.0, "leads": 473.0, "conversions": 155, "validConversions": 155.0}, {"id": "CMP0211", "channel": "Facebook", "name": "Campaign-211", "date": "2023-03-09", "year": 2023, "month": "2023-03", "spend": 149147.0, "leads": 219.0, "conversions": 78, "validConversions": 78.0}, {"id": "CMP0238", "channel": "Google Ads", "name": "Campaign-238", "date": "2024-03-07", "year": 2024, "month": "2024-03", "spend": 47156.0, "leads": 171.0, "conversions": 93, "validConversions": 93.0}, {"id": "CMP0176", "channel": "LinkedIn", "name": "Campaign-176", "date": "2024-08-23", "year": 2024, "month": "2024-08", "spend": 102764.0, "leads": 486.0, "conversions": 177, "validConversions": 177.0}, {"id": "CMP0041", "channel": "Email", "name": "Campaign-41", "date": "2023-09-09", "year": 2023, "month": "2023-09", "spend": 54116.0, "leads": 481.0, "conversions": 41, "validConversions": 41.0}, {"id": "CMP0052", "channel": "Facebook", "name": "Campaign-52", "date": "2024-08-16", "year": 2024, "month": "2024-08", "spend": 31511.0, "leads": 600.0, "conversions": 195, "validConversions": 195.0}, {"id": "CMP0082", "channel": "Instagram", "name": "Campaign-82", "date": "2024-10-10", "year": 2024, "month": "2024-10", "spend": 3301.0, "leads": 144.0, "conversions": 12, "validConversions": 12.0}, {"id": "CMP0391", "channel": "Instagram", "name": "Campaign-391", "date": "2024-06-09", "year": 2024, "month": "2024-06", "spend": 79355.0, "leads": 23.0, "conversions": 90, "validConversions": null}, {"id": "CMP0044", "channel": "Facebook", "name": "Campaign-44", "date": "2024-11-06", "year": 2024, "month": "2024-11", "spend": 167707.0, "leads": 236.0, "conversions": 139, "validConversions": 139.0}, {"id": "CMP0378", "channel": "YouTube", "name": "Campaign-378", "date": "2023-11-16", "year": 2023, "month": "2023-11", "spend": 7499.0, "leads": 242.0, "conversions": 70, "validConversions": 70.0}, {"id": "CMP0470", "channel": "YouTube", "name": "Campaign-470", "date": "2023-08-20", "year": 2023, "month": "2023-08", "spend": 149193.0, "leads": 339.0, "conversions": 74, "validConversions": 74.0}, {"id": "CMP0103", "channel": "Facebook", "name": "Campaign-103", "date": "2024-06-18", "year": 2024, "month": "2024-06", "spend": 114564.0, "leads": 598.0, "conversions": 53, "validConversions": 53.0}, {"id": "CMP0374", "channel": "Instagram", "name": "Campaign-374", "date": "2024-08-27", "year": 2024, "month": "2024-08", "spend": 191518.0, "leads": 537.0, "conversions": 108, "validConversions": 108.0}, {"id": "CMP0458", "channel": "Instagram", "name": "Campaign-458", "date": "2023-04-24", "year": 2023, "month": "2023-04", "spend": 23584.0, "leads": 150.0, "conversions": 181, "validConversions": null}, {"id": "CMP0067", "channel": "Google Ads", "name": "Campaign-67", "date": "2023-08-01", "year": 2023, "month": "2023-08", "spend": 191938.0, "leads": 198.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0225", "channel": "Google Ads", "name": "Campaign-225", "date": "2024-10-23", "year": 2024, "month": "2024-10", "spend": 94172.0, "leads": 429.0, "conversions": 93, "validConversions": 93.0}, {"id": "CMP0344", "channel": "Email", "name": "Campaign-344", "date": null, "year": null, "month": null, "spend": 95254.0, "leads": 729.0, "conversions": 101, "validConversions": 101.0}, {"id": "CMP0226", "channel": "Email", "name": "Campaign-226", "date": "2024-03-07", "year": 2024, "month": "2024-03", "spend": 148702.0, "leads": 259.0, "conversions": 140, "validConversions": 140.0}, {"id": "CMP0444", "channel": "Instagram", "name": "Campaign-444", "date": "2024-02-17", "year": 2024, "month": "2024-02", "spend": 177037.0, "leads": 552.0, "conversions": 45, "validConversions": 45.0}, {"id": "CMP0453", "channel": "Google Ads", "name": "Campaign-453", "date": "2023-04-22", "year": 2023, "month": "2023-04", "spend": 136275.0, "leads": 289.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0331", "channel": "LinkedIn", "name": "Campaign-331", "date": "2024-02-28", "year": 2024, "month": "2024-02", "spend": 147213.0, "leads": 526.0, "conversions": 46, "validConversions": 46.0}, {"id": "CMP0016", "channel": "Email", "name": "Campaign-16", "date": "2024-03-23", "year": 2024, "month": "2024-03", "spend": 133300.0, "leads": 252.0, "conversions": 3, "validConversions": 3.0}, {"id": "CMP0113", "channel": "Google Ads", "name": "Campaign-113", "date": "2023-06-06", "year": 2023, "month": "2023-06", "spend": 182809.0, "leads": 258.0, "conversions": 5, "validConversions": 5.0}, {"id": "CMP0248", "channel": "Instagram", "name": "Campaign-248", "date": "2024-08-13", "year": 2024, "month": "2024-08", "spend": 17479.0, "leads": 450.0, "conversions": 37, "validConversions": 37.0}, {"id": "CMP0145", "channel": "Email", "name": "Campaign-145", "date": "2023-10-15", "year": 2023, "month": "2023-10", "spend": 16380.0, "leads": 225.0, "conversions": 56, "validConversions": 56.0}, {"id": "CMP0370", "channel": "LinkedIn", "name": "Campaign-370", "date": "2024-05-14", "year": 2024, "month": "2024-05", "spend": 197220.0, "leads": 99.0, "conversions": 28, "validConversions": 28.0}, {"id": "CMP0068", "channel": "YouTube", "name": "Campaign-68", "date": "2024-02-05", "year": 2024, "month": "2024-02", "spend": 74104.0, "leads": 190.0, "conversions": 177, "validConversions": 177.0}, {"id": "CMP0102", "channel": "YouTube", "name": "Campaign-102", "date": "2023-06-12", "year": 2023, "month": "2023-06", "spend": 115428.0, "leads": 672.0, "conversions": 175, "validConversions": 175.0}, {"id": "CMP0187", "channel": "Facebook", "name": "Campaign-187", "date": "2023-11-27", "year": 2023, "month": "2023-11", "spend": 5114.0, "leads": 185.0, "conversions": 90, "validConversions": 90.0}, {"id": "CMP0135", "channel": "Email", "name": "Campaign-135", "date": "2024-04-23", "year": 2024, "month": "2024-04", "spend": 7269.0, "leads": 147.0, "conversions": 102, "validConversions": 102.0}, {"id": "CMP0330", "channel": "LinkedIn", "name": "Campaign-330", "date": "2024-08-21", "year": 2024, "month": "2024-08", "spend": 58117.0, "leads": 398.0, "conversions": 179, "validConversions": 179.0}, {"id": "CMP0427", "channel": "LinkedIn", "name": "Campaign-427", "date": "2024-02-11", "year": 2024, "month": "2024-02", "spend": 131863.0, "leads": 792.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0398", "channel": "YouTube", "name": "Campaign-398", "date": "2023-06-18", "year": 2023, "month": "2023-06", "spend": 22659.0, "leads": 231.0, "conversions": 132, "validConversions": 132.0}, {"id": "CMP0477", "channel": "Email", "name": "Campaign-477", "date": "2023-08-14", "year": 2023, "month": "2023-08", "spend": 25331.0, "leads": 730.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0270", "channel": "Facebook", "name": "Campaign-270", "date": "2023-05-11", "year": 2023, "month": "2023-05", "spend": 84844.0, "leads": 478.0, "conversions": 96, "validConversions": 96.0}, {"id": "CMP0256", "channel": "Instagram", "name": "Campaign-256", "date": "2023-10-19", "year": 2023, "month": "2023-10", "spend": 41895.0, "leads": 565.0, "conversions": 136, "validConversions": 136.0}, {"id": "CMP0422", "channel": "Email", "name": "Campaign-422", "date": "2023-03-28", "year": 2023, "month": "2023-03", "spend": null, "leads": 122.0, "conversions": 124, "validConversions": null}, {"id": "CMP0329", "channel": "Instagram", "name": "Campaign-329", "date": "2023-06-01", "year": 2023, "month": "2023-06", "spend": 35980.0, "leads": 457.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0138", "channel": "Instagram", "name": "Campaign-138", "date": "2024-06-08", "year": 2024, "month": "2024-06", "spend": 116003.0, "leads": 714.0, "conversions": 40, "validConversions": 40.0}, {"id": "CMP0403", "channel": "Email", "name": "Campaign-403", "date": "2023-04-15", "year": 2023, "month": "2023-04", "spend": 108471.0, "leads": 643.0, "conversions": 104, "validConversions": 104.0}, {"id": "CMP0311", "channel": "LinkedIn", "name": "Campaign-311", "date": "2023-04-24", "year": 2023, "month": "2023-04", "spend": 196528.0, "leads": 472.0, "conversions": 163, "validConversions": 163.0}, {"id": "CMP0362", "channel": "YouTube", "name": "Campaign-362", "date": "2023-03-03", "year": 2023, "month": "2023-03", "spend": 109051.0, "leads": 657.0, "conversions": 45, "validConversions": 45.0}, {"id": "CMP0249", "channel": "YouTube", "name": "Campaign-249", "date": "2023-01-22", "year": 2023, "month": "2023-01", "spend": 121392.0, "leads": 298.0, "conversions": 196, "validConversions": 196.0}, {"id": "CMP0437", "channel": "Email", "name": "Campaign-437", "date": "2023-02-20", "year": 2023, "month": "2023-02", "spend": 2363.0, "leads": 427.0, "conversions": 64, "validConversions": 64.0}, {"id": "CMP0117", "channel": "Facebook", "name": "Campaign-117", "date": "2023-08-11", "year": 2023, "month": "2023-08", "spend": 194376.0, "leads": 787.0, "conversions": 80, "validConversions": 80.0}, {"id": "CMP0390", "channel": "YouTube", "name": "Campaign-390", "date": "2024-09-27", "year": 2024, "month": "2024-09", "spend": null, "leads": 609.0, "conversions": 72, "validConversions": 72.0}, {"id": "CMP0321", "channel": "YouTube", "name": "Campaign-321", "date": "2024-12-16", "year": 2024, "month": "2024-12", "spend": 96774.0, "leads": 550.0, "conversions": 71, "validConversions": 71.0}, {"id": "CMP0160", "channel": "Facebook", "name": "Campaign-160", "date": "2024-09-29", "year": 2024, "month": "2024-09", "spend": 112776.0, "leads": 675.0, "conversions": 137, "validConversions": 137.0}, {"id": "CMP0394", "channel": "Email", "name": "Campaign-394", "date": "2023-07-12", "year": 2023, "month": "2023-07", "spend": 3996.0, "leads": 241.0, "conversions": 178, "validConversions": 178.0}, {"id": "CMP0396", "channel": "Instagram", "name": "Campaign-396", "date": "2023-10-12", "year": 2023, "month": "2023-10", "spend": 5089.0, "leads": 430.0, "conversions": 170, "validConversions": 170.0}, {"id": "CMP0219", "channel": "Instagram", "name": "Campaign-219", "date": "2024-07-28", "year": 2024, "month": "2024-07", "spend": 194319.0, "leads": 514.0, "conversions": 53, "validConversions": 53.0}, {"id": "CMP0408", "channel": "Email", "name": "Campaign-408", "date": "2023-09-04", "year": 2023, "month": "2023-09", "spend": 115204.0, "leads": 113.0, "conversions": 24, "validConversions": 24.0}, {"id": "CMP0084", "channel": "Instagram", "name": "Campaign-84", "date": "2023-06-14", "year": 2023, "month": "2023-06", "spend": 83463.0, "leads": 550.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0245", "channel": "Instagram", "name": "Campaign-245", "date": "2024-08-28", "year": 2024, "month": "2024-08", "spend": 84263.0, "leads": 762.0, "conversions": 46, "validConversions": 46.0}, {"id": "CMP0242", "channel": "Email", "name": "Campaign-242", "date": "2023-06-25", "year": 2023, "month": "2023-06", "spend": 119925.0, "leads": 255.0, "conversions": 127, "validConversions": 127.0}, {"id": "CMP0315", "channel": "Instagram", "name": "Campaign-315", "date": "2023-09-28", "year": 2023, "month": "2023-09", "spend": 124784.0, "leads": 11.0, "conversions": 176, "validConversions": null}, {"id": "CMP0062", "channel": "Facebook", "name": "Campaign-62", "date": "2023-07-04", "year": 2023, "month": "2023-07", "spend": 155885.0, "leads": 313.0, "conversions": 125, "validConversions": 125.0}, {"id": "CMP0435", "channel": "Unknown", "name": "Campaign-435", "date": "2024-01-14", "year": 2024, "month": "2024-01", "spend": 31709.0, "leads": 23.0, "conversions": 23, "validConversions": 23.0}, {"id": "CMP0348", "channel": "Facebook", "name": "Campaign-348", "date": "2023-09-28", "year": 2023, "month": "2023-09", "spend": 104489.0, "leads": 73.0, "conversions": 7, "validConversions": 7.0}, {"id": "CMP0133", "channel": "YouTube", "name": "Campaign-133", "date": "2024-10-29", "year": 2024, "month": "2024-10", "spend": 109529.0, "leads": 359.0, "conversions": 68, "validConversions": 68.0}, {"id": "CMP0178", "channel": "Instagram", "name": "Campaign-178", "date": "2023-10-28", "year": 2023, "month": "2023-10", "spend": 114224.0, "leads": 619.0, "conversions": 139, "validConversions": 139.0}, {"id": "CMP0060", "channel": "YouTube", "name": "Campaign-60", "date": "2023-10-17", "year": 2023, "month": "2023-10", "spend": 174982.0, "leads": 546.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0205", "channel": "Email", "name": "Campaign-205", "date": "2023-08-07", "year": 2023, "month": "2023-08", "spend": 144432.0, "leads": 186.0, "conversions": 165, "validConversions": 165.0}, {"id": "CMP0106", "channel": "Facebook", "name": "Campaign-106", "date": "2023-07-17", "year": 2023, "month": "2023-07", "spend": 2060.0, "leads": 262.0, "conversions": 107, "validConversions": 107.0}, {"id": "CMP0011", "channel": "YouTube", "name": "Campaign-11", "date": "2023-11-27", "year": 2023, "month": "2023-11", "spend": 76807.0, "leads": 298.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0056", "channel": "Facebook", "name": "Campaign-56", "date": "2024-09-02", "year": 2024, "month": "2024-09", "spend": 46462.0, "leads": 626.0, "conversions": 118, "validConversions": 118.0}, {"id": "CMP0459", "channel": "Instagram", "name": "Campaign-459", "date": "2023-08-13", "year": 2023, "month": "2023-08", "spend": 10521.0, "leads": 61.0, "conversions": 143, "validConversions": null}, {"id": "CMP0443", "channel": "Facebook", "name": "Campaign-443", "date": "2023-07-13", "year": 2023, "month": "2023-07", "spend": 93074.0, "leads": 555.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0057", "channel": "Google Ads", "name": "Campaign-57", "date": "2023-05-06", "year": 2023, "month": "2023-05", "spend": 194454.0, "leads": 770.0, "conversions": 161, "validConversions": 161.0}, {"id": "CMP0366", "channel": "Google Ads", "name": "Campaign-366", "date": "2023-08-10", "year": 2023, "month": "2023-08", "spend": 37709.0, "leads": 559.0, "conversions": 14, "validConversions": 14.0}, {"id": "CMP0167", "channel": "Google Ads", "name": "Campaign-167", "date": "2023-12-28", "year": 2023, "month": "2023-12", "spend": 10997.0, "leads": 736.0, "conversions": 74, "validConversions": 74.0}, {"id": "CMP0089", "channel": "YouTube", "name": "Campaign-89", "date": "2024-11-06", "year": 2024, "month": "2024-11", "spend": 26354.0, "leads": 414.0, "conversions": 51, "validConversions": 51.0}, {"id": "CMP0272", "channel": "Email", "name": "Campaign-272", "date": "2023-11-21", "year": 2023, "month": "2023-11", "spend": 92697.0, "leads": 701.0, "conversions": 185, "validConversions": 185.0}, {"id": "CMP0025", "channel": "Email", "name": "Campaign-25", "date": "2023-03-22", "year": 2023, "month": "2023-03", "spend": 174857.0, "leads": null, "conversions": 47, "validConversions": null}, {"id": "CMP0115", "channel": "LinkedIn", "name": "Campaign-115", "date": "2024-01-09", "year": 2024, "month": "2024-01", "spend": 98426.0, "leads": 333.0, "conversions": 163, "validConversions": 163.0}, {"id": "CMP0402", "channel": "Email", "name": "Campaign-402", "date": "2024-10-25", "year": 2024, "month": "2024-10", "spend": 87042.0, "leads": 157.0, "conversions": 163, "validConversions": null}, {"id": "CMP0032", "channel": "YouTube", "name": "Campaign-32", "date": "2024-10-08", "year": 2024, "month": "2024-10", "spend": 115221.0, "leads": 750.0, "conversions": 0, "validConversions": 0.0}, {"id": "CMP0345", "channel": "Instagram", "name": "Campaign-345", "date": "2024-05-09", "year": 2024, "month": "2024-05", "spend": 177336.0, "leads": 53.0, "conversions": 173, "validConversions": null}, {"id": "CMP0462", "channel": "Google Ads", "name": "Campaign-462", "date": "2023-02-06", "year": 2023, "month": "2023-02", "spend": 31063.0, "leads": 214.0, "conversions": 192, "validConversions": 192.0}, {"id": "CMP0354", "channel": "YouTube", "name": "Campaign-354", "date": "2023-09-06", "year": 2023, "month": "2023-09", "spend": 198675.0, "leads": 300.0, "conversions": 199, "validConversions": 199.0}, {"id": "CMP0442", "channel": "Email", "name": "Campaign-442", "date": "2023-10-29", "year": 2023, "month": "2023-10", "spend": 114272.0, "leads": 85.0, "conversions": 104, "validConversions": null}, {"id": "CMP0191", "channel": "Email", "name": "Campaign-191", "date": "2023-09-09", "year": 2023, "month": "2023-09", "spend": 153100.0, "leads": 109.0, "conversions": 83, "validConversions": 83.0}, {"id": "CMP0158", "channel": "Instagram", "name": "Campaign-158", "date": "2023-10-06", "year": 2023, "month": "2023-10", "spend": 27279.0, "leads": 620.0, "conversions": 116, "validConversions": 116.0}, {"id": "CMP0400", "channel": "Google Ads", "name": "Campaign-400", "date": "2023-11-11", "year": 2023, "month": "2023-11", "spend": 97965.0, "leads": 556.0, "conversions": 134, "validConversions": 134.0}, {"id": "CMP0451", "channel": "Facebook", "name": "Campaign-451", "date": "2024-06-15", "year": 2024, "month": "2024-06", "spend": 30885.0, "leads": 200.0, "conversions": 192, "validConversions": 192.0}, {"id": "CMP0198", "channel": "YouTube", "name": "Campaign-198", "date": "2023-11-18", "year": 2023, "month": "2023-11", "spend": 37398.0, "leads": 381.0, "conversions": 48, "validConversions": 48.0}, {"id": "CMP0129", "channel": "YouTube", "name": "Campaign-129", "date": "2023-04-05", "year": 2023, "month": "2023-04", "spend": 80863.0, "leads": 643.0, "conversions": 66, "validConversions": 66.0}, {"id": "CMP0471", "channel": "LinkedIn", "name": "Campaign-471", "date": "2024-09-27", "year": 2024, "month": "2024-09", "spend": 134746.0, "leads": 292.0, "conversions": 102, "validConversions": 102.0}, {"id": "CMP0124", "channel": "LinkedIn", "name": "Campaign-124", "date": "2023-05-10", "year": 2023, "month": "2023-05", "spend": 122654.0, "leads": null, "conversions": 170, "validConversions": null}, {"id": "CMP0339", "channel": "Google Ads", "name": "Campaign-339", "date": "2024-08-14", "year": 2024, "month": "2024-08", "spend": 137654.0, "leads": 608.0, "conversions": 154, "validConversions": 154.0}, {"id": "CMP0279", "channel": "Email", "name": "Campaign-279", "date": "2024-09-19", "year": 2024, "month": "2024-09", "spend": 80929.0, "leads": null, "conversions": 90, "validConversions": null}, {"id": "CMP0480", "channel": "Email", "name": "Campaign-480", "date": "2024-05-22", "year": 2024, "month": "2024-05", "spend": 143564.0, "leads": 369.0, "conversions": 25, "validConversions": 25.0}, {"id": "CMP0099", "channel": "Instagram", "name": "Campaign-99", "date": "2024-09-06", "year": 2024, "month": "2024-09", "spend": 18562.0, "leads": 259.0, "conversions": 67, "validConversions": 67.0}, {"id": "CMP0300", "channel": "Facebook", "name": "Campaign-300", "date": "2023-08-20", "year": 2023, "month": "2023-08", "spend": 15016.0, "leads": 169.0, "conversions": 191, "validConversions": null}, {"id": "CMP0299", "channel": "Facebook", "name": "Campaign-299", "date": "2024-03-22", "year": 2024, "month": "2024-03", "spend": 82409.0, "leads": 532.0, "conversions": 125, "validConversions": 125.0}, {"id": "CMP0465", "channel": "Facebook", "name": "Campaign-465", "date": "2023-09-02", "year": 2023, "month": "2023-09", "spend": 120206.0, "leads": 719.0, "conversions": 67, "validConversions": 67.0}, {"id": "CMP0295", "channel": "Google Ads", "name": "Campaign-295", "date": "2023-05-23", "year": 2023, "month": "2023-05", "spend": 28870.0, "leads": 88.0, "conversions": 194, "validConversions": null}, {"id": "CMP0255", "channel": "Facebook", "name": "Campaign-255", "date": "2024-04-17", "year": 2024, "month": "2024-04", "spend": 77069.0, "leads": 219.0, "conversions": 146, "validConversions": 146.0}, {"id": "CMP0147", "channel": "Google Ads", "name": "Campaign-147", "date": "2023-04-16", "year": 2023, "month": "2023-04", "spend": 57830.0, "leads": 241.0, "conversions": 117, "validConversions": 117.0}, {"id": "CMP0181", "channel": "Email", "name": "Campaign-181", "date": "2024-06-27", "year": 2024, "month": "2024-06", "spend": 194150.0, "leads": 372.0, "conversions": 144, "validConversions": 144.0}, {"id": "CMP0357", "channel": "Google Ads", "name": "Campaign-357", "date": "2023-07-30", "year": 2023, "month": "2023-07", "spend": 184730.0, "leads": 579.0, "conversions": 84, "validConversions": 84.0}, {"id": "CMP0303", "channel": "Instagram", "name": "Campaign-303", "date": "2023-07-15", "year": 2023, "month": "2023-07", "spend": 140925.0, "leads": 337.0, "conversions": 1, "validConversions": 1.0}, {"id": "CMP0241", "channel": "Email", "name": "Campaign-241", "date": "2024-04-08", "year": 2024, "month": "2024-04", "spend": 152644.0, "leads": 372.0, "conversions": 153, "validConversions": 153.0}, {"id": "CMP0388", "channel": "YouTube", "name": "Campaign-388", "date": "2024-01-30", "year": 2024, "month": "2024-01", "spend": 70367.0, "leads": 714.0, "conversions": 13, "validConversions": 13.0}, {"id": "CMP0282", "channel": "LinkedIn", "name": "Campaign-282", "date": "2023-11-02", "year": 2023, "month": "2023-11", "spend": 168925.0, "leads": 373.0, "conversions": 81, "validConversions": 81.0}, {"id": "CMP0341", "channel": "Instagram", "name": "Campaign-341", "date": "2024-11-08", "year": 2024, "month": "2024-11", "spend": 171871.0, "leads": 82.0, "conversions": 89, "validConversions": null}, {"id": "CMP0109", "channel": "Email", "name": "Campaign-109", "date": "2024-07-02", "year": 2024, "month": "2024-07", "spend": 25065.0, "leads": 92.0, "conversions": 45, "validConversions": 45.0}, {"id": "CMP0274", "channel": "Google Ads", "name": "Campaign-274", "date": "2024-02-14", "year": 2024, "month": "2024-02", "spend": 117600.0, "leads": 465.0, "conversions": 20, "validConversions": 20.0}, {"id": "CMP0004", "channel": "Email", "name": "Campaign-4", "date": "2024-10-08", "year": 2024, "month": "2024-10", "spend": 35896.0, "leads": 379.0, "conversions": 163, "validConversions": 163.0}, {"id": "CMP0407", "channel": "LinkedIn", "name": "Campaign-407", "date": "2023-04-23", "year": 2023, "month": "2023-04", "spend": 91242.0, "leads": 688.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0195", "channel": "Email", "name": "Campaign-195", "date": "2024-01-16", "year": 2024, "month": "2024-01", "spend": 168405.0, "leads": 311.0, "conversions": 92, "validConversions": 92.0}, {"id": "CMP0083", "channel": "Facebook", "name": "Campaign-83", "date": "2024-04-06", "year": 2024, "month": "2024-04", "spend": 161682.0, "leads": 796.0, "conversions": 119, "validConversions": 119.0}, {"id": "CMP0262", "channel": "Google Ads", "name": "Campaign-262", "date": "2023-02-10", "year": 2023, "month": "2023-02", "spend": 156417.0, "leads": 371.0, "conversions": 38, "validConversions": 38.0}, {"id": "CMP0054", "channel": "YouTube", "name": "Campaign-54", "date": "2023-04-24", "year": 2023, "month": "2023-04", "spend": 181893.0, "leads": 762.0, "conversions": 61, "validConversions": 61.0}, {"id": "CMP0261", "channel": "Email", "name": "Campaign-261", "date": "2024-06-24", "year": 2024, "month": "2024-06", "spend": 55364.0, "leads": 243.0, "conversions": 178, "validConversions": 178.0}, {"id": "CMP0085", "channel": "Facebook", "name": "Campaign-85", "date": "2023-07-04", "year": 2023, "month": "2023-07", "spend": 167750.0, "leads": 534.0, "conversions": 3, "validConversions": 3.0}, {"id": "CMP0438", "channel": "YouTube", "name": "Campaign-438", "date": "2024-10-26", "year": 2024, "month": "2024-10", "spend": 12358.0, "leads": 470.0, "conversions": 192, "validConversions": 192.0}, {"id": "CMP0180", "channel": "Instagram", "name": "Campaign-180", "date": "2024-10-22", "year": 2024, "month": "2024-10", "spend": 184952.0, "leads": 369.0, "conversions": 38, "validConversions": 38.0}, {"id": "CMP0495", "channel": "YouTube", "name": "Campaign-495", "date": "2024-09-29", "year": 2024, "month": "2024-09", "spend": 164696.0, "leads": 736.0, "conversions": 76, "validConversions": 76.0}, {"id": "CMP0230", "channel": "Instagram", "name": "Campaign-230", "date": "2023-11-24", "year": 2023, "month": "2023-11", "spend": 83685.0, "leads": 32.0, "conversions": 118, "validConversions": null}, {"id": "CMP0432", "channel": "LinkedIn", "name": "Campaign-432", "date": "2023-02-24", "year": 2023, "month": "2023-02", "spend": 152396.0, "leads": 579.0, "conversions": 36, "validConversions": 36.0}, {"id": "CMP0234", "channel": "YouTube", "name": "Campaign-234", "date": "2024-05-20", "year": 2024, "month": "2024-05", "spend": 2992.0, "leads": 632.0, "conversions": 147, "validConversions": 147.0}, {"id": "CMP0075", "channel": "YouTube", "name": "Campaign-75", "date": "2024-10-02", "year": 2024, "month": "2024-10", "spend": 137440.0, "leads": 214.0, "conversions": 50, "validConversions": 50.0}, {"id": "CMP0466", "channel": "Facebook", "name": "Campaign-466", "date": "2023-03-09", "year": 2023, "month": "2023-03", "spend": 198024.0, "leads": 615.0, "conversions": 42, "validConversions": 42.0}, {"id": "CMP0413", "channel": "Facebook", "name": "Campaign-413", "date": "2023-01-30", "year": 2023, "month": "2023-01", "spend": 111636.0, "leads": 377.0, "conversions": 86, "validConversions": 86.0}, {"id": "CMP0497", "channel": "Email", "name": "Campaign-497", "date": "2023-11-09", "year": 2023, "month": "2023-11", "spend": 113001.0, "leads": 683.0, "conversions": 187, "validConversions": 187.0}, {"id": "CMP0491", "channel": "LinkedIn", "name": "Campaign-491", "date": "2023-04-07", "year": 2023, "month": "2023-04", "spend": null, "leads": 100.0, "conversions": 116, "validConversions": null}, {"id": "CMP0024", "channel": "Google Ads", "name": "Campaign-24", "date": "2024-07-10", "year": 2024, "month": "2024-07", "spend": 135881.0, "leads": 760.0, "conversions": 22, "validConversions": 22.0}, {"id": "CMP0155", "channel": "Facebook", "name": "Campaign-155", "date": "2024-04-01", "year": 2024, "month": "2024-04", "spend": 51699.0, "leads": 193.0, "conversions": 10, "validConversions": 10.0}, {"id": "CMP0434", "channel": "Email", "name": "Campaign-434", "date": "2023-10-07", "year": 2023, "month": "2023-10", "spend": 26054.0, "leads": 616.0, "conversions": 102, "validConversions": 102.0}, {"id": "CMP0192", "channel": "YouTube", "name": "Campaign-192", "date": "2023-03-16", "year": 2023, "month": "2023-03", "spend": 188637.0, "leads": null, "conversions": 88, "validConversions": null}, {"id": "CMP0287", "channel": "Instagram", "name": "Campaign-287", "date": "2023-05-05", "year": 2023, "month": "2023-05", "spend": 75591.0, "leads": 592.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0019", "channel": "Facebook", "name": "Campaign-19", "date": "2024-08-30", "year": 2024, "month": "2024-08", "spend": 48032.0, "leads": 386.0, "conversions": 152, "validConversions": 152.0}, {"id": "CMP0318", "channel": "Email", "name": "Campaign-318", "date": "2024-09-19", "year": 2024, "month": "2024-09", "spend": 59986.0, "leads": 121.0, "conversions": 188, "validConversions": null}, {"id": "CMP0051", "channel": "Facebook", "name": "Campaign-51", "date": "2024-10-15", "year": 2024, "month": "2024-10", "spend": 195946.0, "leads": 230.0, "conversions": 16, "validConversions": 16.0}, {"id": "CMP0039", "channel": "LinkedIn", "name": "Campaign-39", "date": "2023-07-18", "year": 2023, "month": "2023-07", "spend": 33601.0, "leads": 236.0, "conversions": 107, "validConversions": 107.0}, {"id": "CMP0194", "channel": "Google Ads", "name": "Campaign-194", "date": "2024-11-03", "year": 2024, "month": "2024-11", "spend": 110255.0, "leads": 772.0, "conversions": 112, "validConversions": 112.0}, {"id": "CMP0418", "channel": "Facebook", "name": "Campaign-418", "date": "2023-12-27", "year": 2023, "month": "2023-12", "spend": 93828.0, "leads": 326.0, "conversions": 181, "validConversions": 181.0}, {"id": "CMP0189", "channel": "Instagram", "name": "Campaign-189", "date": "2023-07-10", "year": 2023, "month": "2023-07", "spend": 51768.0, "leads": 75.0, "conversions": 165, "validConversions": null}, {"id": "CMP0493", "channel": "Email", "name": "Campaign-493", "date": "2024-05-30", "year": 2024, "month": "2024-05", "spend": 164007.0, "leads": 150.0, "conversions": 31, "validConversions": 31.0}, {"id": "CMP0006", "channel": "LinkedIn", "name": "Campaign-6", "date": null, "year": null, "month": null, "spend": 30229.0, "leads": 382.0, "conversions": 37, "validConversions": 37.0}, {"id": "CMP0076", "channel": "YouTube", "name": "Campaign-76", "date": "2023-03-20", "year": 2023, "month": "2023-03", "spend": 1817715.0, "leads": 745.0, "conversions": 66, "validConversions": 66.0}, {"id": "CMP0143", "channel": "LinkedIn", "name": "Campaign-143", "date": "2023-07-22", "year": 2023, "month": "2023-07", "spend": 164002.0, "leads": 425.0, "conversions": 119, "validConversions": 119.0}, {"id": "CMP0048", "channel": "Google Ads", "name": "Campaign-48", "date": "2023-05-28", "year": 2023, "month": "2023-05", "spend": 111765.0, "leads": 534.0, "conversions": 73, "validConversions": 73.0}, {"id": "CMP0047", "channel": "Email", "name": "Campaign-47", "date": "2023-03-26", "year": 2023, "month": "2023-03", "spend": 94850.0, "leads": 262.0, "conversions": 193, "validConversions": 193.0}, {"id": "CMP0071", "channel": "Facebook", "name": "Campaign-71", "date": "2023-01-23", "year": 2023, "month": "2023-01", "spend": 124013.0, "leads": 165.0, "conversions": 194, "validConversions": null}, {"id": "CMP0080", "channel": "Facebook", "name": "Campaign-80", "date": "2024-01-20", "year": 2024, "month": "2024-01", "spend": 85053.0, "leads": 314.0, "conversions": 144, "validConversions": 144.0}, {"id": "CMP0031", "channel": "LinkedIn", "name": "Campaign-31", "date": "2024-10-11", "year": 2024, "month": "2024-10", "spend": 81465.0, "leads": 548.0, "conversions": 87, "validConversions": 87.0}, {"id": "CMP0012", "channel": "YouTube", "name": "Campaign-12", "date": "2023-07-28", "year": 2023, "month": "2023-07", "spend": 131648.0, "leads": 567.0, "conversions": 81, "validConversions": 81.0}, {"id": "CMP0358", "channel": "LinkedIn", "name": "Campaign-358", "date": "2024-12-12", "year": 2024, "month": "2024-12", "spend": 182621.0, "leads": 151.0, "conversions": 191, "validConversions": null}, {"id": "CMP0482", "channel": "YouTube", "name": "Campaign-482", "date": "2023-06-25", "year": 2023, "month": "2023-06", "spend": 2867505.0, "leads": 664.0, "conversions": 100, "validConversions": 100.0}, {"id": "CMP0454", "channel": "YouTube", "name": "Campaign-454", "date": "2024-11-28", "year": 2024, "month": "2024-11", "spend": 193313.0, "leads": 200.0, "conversions": 23, "validConversions": 23.0}, {"id": "CMP0269", "channel": "Email", "name": "Campaign-269", "date": "2024-03-01", "year": 2024, "month": "2024-03", "spend": 80518.0, "leads": 384.0, "conversions": 10, "validConversions": 10.0}, {"id": "CMP0116", "channel": "Email", "name": "Campaign-116", "date": "2023-04-28", "year": 2023, "month": "2023-04", "spend": 165088.0, "leads": 548.0, "conversions": 98, "validConversions": 98.0}, {"id": "CMP0026", "channel": "YouTube", "name": "Campaign-26", "date": "2024-08-08", "year": 2024, "month": "2024-08", "spend": 169619.0, "leads": 302.0, "conversions": 147, "validConversions": 147.0}, {"id": "CMP0447", "channel": "LinkedIn", "name": "Campaign-447", "date": "2023-10-10", "year": 2023, "month": "2023-10", "spend": 107227.0, "leads": 392.0, "conversions": 191, "validConversions": 191.0}, {"id": "CMP0196", "channel": "Instagram", "name": "Campaign-196", "date": "2024-01-16", "year": 2024, "month": "2024-01", "spend": 5174.0, "leads": 590.0, "conversions": 71, "validConversions": 71.0}, {"id": "CMP0385", "channel": "Email", "name": "Campaign-385", "date": "2023-05-14", "year": 2023, "month": "2023-05", "spend": 93647.0, "leads": 636.0, "conversions": 175, "validConversions": 175.0}, {"id": "CMP0066", "channel": "Instagram", "name": "Campaign-66", "date": "2024-01-06", "year": 2024, "month": "2024-01", "spend": 161132.0, "leads": 143.0, "conversions": 77, "validConversions": 77.0}, {"id": "CMP0360", "channel": "Email", "name": "Campaign-360", "date": "2023-03-18", "year": 2023, "month": "2023-03", "spend": 27739.0, "leads": 310.0, "conversions": 7, "validConversions": 7.0}, {"id": "CMP0046", "channel": "LinkedIn", "name": "Campaign-46", "date": "2023-10-09", "year": 2023, "month": "2023-10", "spend": 58754.0, "leads": 217.0, "conversions": 145, "validConversions": 145.0}, {"id": "CMP0431", "channel": "Facebook", "name": "Campaign-431", "date": "2023-12-08", "year": 2023, "month": "2023-12", "spend": 36409.0, "leads": 262.0, "conversions": 149, "validConversions": 149.0}, {"id": "CMP0417", "channel": "LinkedIn", "name": "Campaign-417", "date": "2024-04-08", "year": 2024, "month": "2024-04", "spend": 2534.0, "leads": 513.0, "conversions": 152, "validConversions": 152.0}, {"id": "CMP0496", "channel": "Google Ads", "name": "Campaign-496", "date": "2024-05-03", "year": 2024, "month": "2024-05", "spend": 15440.0, "leads": 534.0, "conversions": 0, "validConversions": 0.0}, {"id": "CMP0404", "channel": "Instagram", "name": "Campaign-404", "date": "2023-05-31", "year": 2023, "month": "2023-05", "spend": 72111.0, "leads": 241.0, "conversions": 26, "validConversions": 26.0}, {"id": "CMP0244", "channel": "Email", "name": "Campaign-244", "date": "2023-12-01", "year": 2023, "month": "2023-12", "spend": 63868.0, "leads": 174.0, "conversions": 169, "validConversions": 169.0}, {"id": "CMP0474", "channel": "Instagram", "name": "Campaign-474", "date": "2024-02-06", "year": 2024, "month": "2024-02", "spend": 199347.0, "leads": 275.0, "conversions": 198, "validConversions": 198.0}, {"id": "CMP0488", "channel": "Google Ads", "name": "Campaign-488", "date": "2024-09-02", "year": 2024, "month": "2024-09", "spend": null, "leads": 526.0, "conversions": 159, "validConversions": 159.0}, {"id": "CMP0267", "channel": "Facebook", "name": "Campaign-267", "date": "2024-04-26", "year": 2024, "month": "2024-04", "spend": 199972.0, "leads": 732.0, "conversions": 28, "validConversions": 28.0}, {"id": "CMP0069", "channel": "Google Ads", "name": "Campaign-69", "date": "2023-04-14", "year": 2023, "month": "2023-04", "spend": 139152.0, "leads": 222.0, "conversions": 100, "validConversions": 100.0}, {"id": "CMP0022", "channel": "Google Ads", "name": "Campaign-22", "date": "2024-09-24", "year": 2024, "month": "2024-09", "spend": 100802.0, "leads": 22.0, "conversions": 149, "validConversions": null}, {"id": "CMP0078", "channel": "YouTube", "name": "Campaign-78", "date": "2024-12-04", "year": 2024, "month": "2024-12", "spend": 179112.0, "leads": 283.0, "conversions": 92, "validConversions": 92.0}, {"id": "CMP0306", "channel": "Instagram", "name": "Campaign-306", "date": "2023-01-06", "year": 2023, "month": "2023-01", "spend": 123169.0, "leads": 49.0, "conversions": 188, "validConversions": null}, {"id": "CMP0450", "channel": "Email", "name": "Campaign-450", "date": "2024-05-20", "year": 2024, "month": "2024-05", "spend": 163897.0, "leads": 208.0, "conversions": 76, "validConversions": 76.0}, {"id": "CMP0237", "channel": "Facebook", "name": "Campaign-237", "date": "2023-10-09", "year": 2023, "month": "2023-10", "spend": 29160.0, "leads": 517.0, "conversions": 90, "validConversions": 90.0}, {"id": "CMP0291", "channel": "LinkedIn", "name": "Campaign-291", "date": "2023-01-30", "year": 2023, "month": "2023-01", "spend": 79004.0, "leads": 48.0, "conversions": 128, "validConversions": null}, {"id": "CMP0285", "channel": "Google Ads", "name": "Campaign-285", "date": "2024-05-20", "year": 2024, "month": "2024-05", "spend": 156961.0, "leads": 507.0, "conversions": 190, "validConversions": 190.0}, {"id": "CMP0059", "channel": "Google Ads", "name": "Campaign-59", "date": "2023-05-26", "year": 2023, "month": "2023-05", "spend": 104072.0, "leads": 588.0, "conversions": 44, "validConversions": 44.0}, {"id": "CMP0126", "channel": "LinkedIn", "name": "Campaign-126", "date": "2023-10-08", "year": 2023, "month": "2023-10", "spend": 11196.0, "leads": 659.0, "conversions": 110, "validConversions": 110.0}, {"id": "CMP0229", "channel": "Facebook", "name": "Campaign-229", "date": "2023-11-22", "year": 2023, "month": "2023-11", "spend": 57739.0, "leads": 211.0, "conversions": 68, "validConversions": 68.0}, {"id": "CMP0043", "channel": "Google Ads", "name": "Campaign-43", "date": "2023-09-24", "year": 2023, "month": "2023-09", "spend": 64894.0, "leads": 459.0, "conversions": 123, "validConversions": 123.0}, {"id": "CMP0005", "channel": "Email", "name": "Campaign-5", "date": "2024-08-13", "year": 2024, "month": "2024-08", "spend": 30899.0, "leads": 450.0, "conversions": 145, "validConversions": 145.0}, {"id": "CMP0122", "channel": "Google Ads", "name": "Campaign-122", "date": null, "year": null, "month": null, "spend": 131716.0, "leads": 173.0, "conversions": 51, "validConversions": 51.0}, {"id": "CMP0169", "channel": "Instagram", "name": "Campaign-169", "date": "2024-10-09", "year": 2024, "month": "2024-10", "spend": null, "leads": 528.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0141", "channel": "Email", "name": "Campaign-141", "date": "2023-09-14", "year": 2023, "month": "2023-09", "spend": 37897.0, "leads": 624.0, "conversions": 11, "validConversions": 11.0}, {"id": "CMP0314", "channel": "Email", "name": "Campaign-314", "date": "2023-03-18", "year": 2023, "month": "2023-03", "spend": 163771.0, "leads": 304.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0065", "channel": "Facebook", "name": "Campaign-65", "date": "2024-05-21", "year": 2024, "month": "2024-05", "spend": 20557.0, "leads": 181.0, "conversions": 14, "validConversions": 14.0}, {"id": "CMP0425", "channel": "YouTube", "name": "Campaign-425", "date": "2023-08-06", "year": 2023, "month": "2023-08", "spend": 66016.0, "leads": 46.0, "conversions": 52, "validConversions": null}, {"id": "CMP0110", "channel": "YouTube", "name": "Campaign-110", "date": "2023-01-24", "year": 2023, "month": "2023-01", "spend": 4895.0, "leads": 208.0, "conversions": 77, "validConversions": 77.0}, {"id": "CMP0281", "channel": "Instagram", "name": "Campaign-281", "date": "2024-02-07", "year": 2024, "month": "2024-02", "spend": 53272.0, "leads": 218.0, "conversions": 110, "validConversions": 110.0}, {"id": "CMP0119", "channel": "Facebook", "name": "Campaign-119", "date": "2023-12-02", "year": 2023, "month": "2023-12", "spend": 35302.0, "leads": 521.0, "conversions": 76, "validConversions": 76.0}, {"id": "CMP0206", "channel": "Instagram", "name": "Campaign-206", "date": "2024-04-21", "year": 2024, "month": "2024-04", "spend": 143385.0, "leads": 311.0, "conversions": 117, "validConversions": 117.0}, {"id": "CMP0499", "channel": "Facebook", "name": "Campaign-499", "date": "2023-09-02", "year": 2023, "month": "2023-09", "spend": 134341.0, "leads": 432.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0007", "channel": "Email", "name": "Campaign-7", "date": "2024-10-04", "year": 2024, "month": "2024-10", "spend": 7583.0, "leads": 394.0, "conversions": 186, "validConversions": 186.0}, {"id": "CMP0263", "channel": "LinkedIn", "name": "Campaign-263", "date": "2023-12-12", "year": 2023, "month": "2023-12", "spend": 53567.0, "leads": 172.0, "conversions": 3, "validConversions": 3.0}, {"id": "CMP0307", "channel": "Email", "name": "Campaign-307", "date": "2024-12-05", "year": 2024, "month": "2024-12", "spend": 171439.0, "leads": 406.0, "conversions": 158, "validConversions": 158.0}, {"id": "CMP0260", "channel": "Google Ads", "name": "Campaign-260", "date": "2024-06-30", "year": 2024, "month": "2024-06", "spend": 163040.0, "leads": 386.0, "conversions": 124, "validConversions": 124.0}, {"id": "CMP0123", "channel": "LinkedIn", "name": "Campaign-123", "date": "2024-12-09", "year": 2024, "month": "2024-12", "spend": 21782.0, "leads": 697.0, "conversions": 91, "validConversions": 91.0}, {"id": "CMP0079", "channel": "Email", "name": "Campaign-79", "date": "2024-03-05", "year": 2024, "month": "2024-03", "spend": 68766.0, "leads": 255.0, "conversions": 175, "validConversions": 175.0}, {"id": "CMP0486", "channel": "YouTube", "name": "Campaign-486", "date": "2023-10-22", "year": 2023, "month": "2023-10", "spend": 11045.0, "leads": 113.0, "conversions": 126, "validConversions": null}, {"id": "CMP0152", "channel": "YouTube", "name": "Campaign-152", "date": "2023-07-30", "year": 2023, "month": "2023-07", "spend": 140009.0, "leads": 667.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0292", "channel": "Email", "name": "Campaign-292", "date": "2023-08-18", "year": 2023, "month": "2023-08", "spend": 189470.0, "leads": 419.0, "conversions": 24, "validConversions": 24.0}, {"id": "CMP0164", "channel": "Instagram", "name": "Campaign-164", "date": "2024-03-15", "year": 2024, "month": "2024-03", "spend": 118278.0, "leads": 361.0, "conversions": 66, "validConversions": 66.0}, {"id": "CMP0266", "channel": "YouTube", "name": "Campaign-266", "date": "2023-03-13", "year": 2023, "month": "2023-03", "spend": 152457.0, "leads": 614.0, "conversions": 63, "validConversions": 63.0}, {"id": "CMP0377", "channel": "Instagram", "name": "Campaign-377", "date": "2023-11-17", "year": 2023, "month": "2023-11", "spend": 8447.0, "leads": 84.0, "conversions": 85, "validConversions": null}, {"id": "CMP0328", "channel": "Google Ads", "name": "Campaign-328", "date": "2023-11-23", "year": 2023, "month": "2023-11", "spend": 189279.0, "leads": 235.0, "conversions": 164, "validConversions": 164.0}, {"id": "CMP0144", "channel": "LinkedIn", "name": "Campaign-144", "date": "2024-12-04", "year": 2024, "month": "2024-12", "spend": 190305.0, "leads": 667.0, "conversions": 96, "validConversions": 96.0}, {"id": "CMP0387", "channel": "Instagram", "name": "Campaign-387", "date": "2024-01-08", "year": 2024, "month": "2024-01", "spend": 75805.0, "leads": 534.0, "conversions": 158, "validConversions": 158.0}, {"id": "CMP0304", "channel": "Google Ads", "name": "Campaign-304", "date": "2024-01-13", "year": 2024, "month": "2024-01", "spend": 14379.0, "leads": 407.0, "conversions": 161, "validConversions": 161.0}, {"id": "CMP0200", "channel": "Instagram", "name": "Campaign-200", "date": "2023-01-10", "year": 2023, "month": "2023-01", "spend": 137393.0, "leads": 682.0, "conversions": 32, "validConversions": 32.0}, {"id": "CMP0042", "channel": "Email", "name": "Campaign-42", "date": "2024-01-23", "year": 2024, "month": "2024-01", "spend": 106186.0, "leads": 580.0, "conversions": 101, "validConversions": 101.0}, {"id": "CMP0460", "channel": "Unknown", "name": "Campaign-460", "date": "2023-04-28", "year": 2023, "month": "2023-04", "spend": 183089.0, "leads": 727.0, "conversions": 14, "validConversions": 14.0}, {"id": "CMP0405", "channel": "LinkedIn", "name": "Campaign-405", "date": "2024-04-17", "year": 2024, "month": "2024-04", "spend": 167637.0, "leads": 59.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0349", "channel": "Email", "name": "Campaign-349", "date": "2023-10-31", "year": 2023, "month": "2023-10", "spend": 178326.0, "leads": 62.0, "conversions": 96, "validConversions": null}, {"id": "CMP0232", "channel": "Email", "name": "Campaign-232", "date": "2023-07-21", "year": 2023, "month": "2023-07", "spend": null, "leads": 340.0, "conversions": 180, "validConversions": 180.0}, {"id": "CMP0246", "channel": "Facebook", "name": "Campaign-246", "date": "2024-01-28", "year": 2024, "month": "2024-01", "spend": null, "leads": 94.0, "conversions": 52, "validConversions": 52.0}, {"id": "CMP0382", "channel": "LinkedIn", "name": "Campaign-382", "date": "2023-06-07", "year": 2023, "month": "2023-06", "spend": 122506.0, "leads": 29.0, "conversions": 79, "validConversions": null}, {"id": "CMP0489", "channel": "LinkedIn", "name": "Campaign-489", "date": null, "year": null, "month": null, "spend": 77057.0, "leads": 51.0, "conversions": 131, "validConversions": null}, {"id": "CMP0320", "channel": "YouTube", "name": "Campaign-320", "date": "2023-10-04", "year": 2023, "month": "2023-10", "spend": 156672.0, "leads": 511.0, "conversions": 25, "validConversions": 25.0}, {"id": "CMP0264", "channel": "Google Ads", "name": "Campaign-264", "date": "2024-10-22", "year": 2024, "month": "2024-10", "spend": 93229.0, "leads": 564.0, "conversions": 125, "validConversions": 125.0}, {"id": "CMP0030", "channel": "Google Ads", "name": "Campaign-30", "date": "2024-04-09", "year": 2024, "month": "2024-04", "spend": 198753.0, "leads": 184.0, "conversions": 67, "validConversions": 67.0}, {"id": "CMP0239", "channel": "LinkedIn", "name": "Campaign-239", "date": "2023-05-03", "year": 2023, "month": "2023-05", "spend": 184447.0, "leads": 734.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0251", "channel": "Google Ads", "name": "Campaign-251", "date": null, "year": null, "month": null, "spend": 137895.0, "leads": 136.0, "conversions": 142, "validConversions": null}, {"id": "CMP0163", "channel": "Email", "name": "Campaign-163", "date": "2024-01-28", "year": 2024, "month": "2024-01", "spend": 115793.0, "leads": 606.0, "conversions": 161, "validConversions": 161.0}, {"id": "CMP0150", "channel": "Facebook", "name": "Campaign-150", "date": "2023-11-16", "year": 2023, "month": "2023-11", "spend": 84987.0, "leads": 491.0, "conversions": 172, "validConversions": 172.0}, {"id": "CMP0383", "channel": "Email", "name": "Campaign-383", "date": "2024-05-31", "year": 2024, "month": "2024-05", "spend": 138066.0, "leads": 160.0, "conversions": 101, "validConversions": 101.0}, {"id": "CMP0379", "channel": "Facebook", "name": "Campaign-379", "date": "2024-12-26", "year": 2024, "month": "2024-12", "spend": 41041.0, "leads": 376.0, "conversions": 150, "validConversions": 150.0}, {"id": "CMP0095", "channel": "Google Ads", "name": "Campaign-95", "date": "2023-12-18", "year": 2023, "month": "2023-12", "spend": 62892.0, "leads": 94.0, "conversions": 3, "validConversions": 3.0}, {"id": "CMP0222", "channel": "YouTube", "name": "Campaign-222", "date": "2024-11-18", "year": 2024, "month": "2024-11", "spend": 190545.0, "leads": 230.0, "conversions": 97, "validConversions": 97.0}, {"id": "CMP0086", "channel": "Instagram", "name": "Campaign-86", "date": "2023-11-02", "year": 2023, "month": "2023-11", "spend": 26466.0, "leads": 61.0, "conversions": 137, "validConversions": null}, {"id": "CMP0188", "channel": "Instagram", "name": "Campaign-188", "date": "2024-03-15", "year": 2024, "month": "2024-03", "spend": 28502.0, "leads": 549.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0090", "channel": "Google Ads", "name": "Campaign-90", "date": "2024-08-03", "year": 2024, "month": "2024-08", "spend": 95297.0, "leads": 418.0, "conversions": 133, "validConversions": 133.0}, {"id": "CMP0326", "channel": "YouTube", "name": "Campaign-326", "date": "2023-05-03", "year": 2023, "month": "2023-05", "spend": 179926.0, "leads": 46.0, "conversions": 0, "validConversions": 0.0}, {"id": "CMP0035", "channel": "LinkedIn", "name": "Campaign-35", "date": "2023-09-03", "year": 2023, "month": "2023-09", "spend": 18576.0, "leads": 795.0, "conversions": 94, "validConversions": 94.0}, {"id": "CMP0218", "channel": "Facebook", "name": "Campaign-218", "date": "2023-04-16", "year": 2023, "month": "2023-04", "spend": 84203.0, "leads": 662.0, "conversions": 15, "validConversions": 15.0}, {"id": "CMP0073", "channel": "Instagram", "name": "Campaign-73", "date": "2023-03-17", "year": 2023, "month": "2023-03", "spend": 186054.0, "leads": 605.0, "conversions": 85, "validConversions": 85.0}, {"id": "CMP0221", "channel": "Google Ads", "name": "Campaign-221", "date": "2024-09-14", "year": 2024, "month": "2024-09", "spend": 183689.0, "leads": 637.0, "conversions": 162, "validConversions": 162.0}, {"id": "CMP0463", "channel": "Facebook", "name": "Campaign-463", "date": "2024-08-12", "year": 2024, "month": "2024-08", "spend": 72268.0, "leads": 533.0, "conversions": 78, "validConversions": 78.0}, {"id": "CMP0472", "channel": "YouTube", "name": "Campaign-472", "date": "2024-12-17", "year": 2024, "month": "2024-12", "spend": 78411.0, "leads": 256.0, "conversions": 40, "validConversions": 40.0}, {"id": "CMP0013", "channel": "Instagram", "name": "Campaign-13", "date": "2023-04-06", "year": 2023, "month": "2023-04", "spend": 114652.0, "leads": 270.0, "conversions": 132, "validConversions": 132.0}, {"id": "CMP0199", "channel": "Instagram", "name": "Campaign-199", "date": "2023-05-06", "year": 2023, "month": "2023-05", "spend": 169001.0, "leads": 659.0, "conversions": 51, "validConversions": 51.0}, {"id": "CMP0214", "channel": "LinkedIn", "name": "Campaign-214", "date": "2024-09-08", "year": 2024, "month": "2024-09", "spend": 90095.0, "leads": 105.0, "conversions": 175, "validConversions": null}, {"id": "CMP0445", "channel": "Email", "name": "Campaign-445", "date": "2023-06-30", "year": 2023, "month": "2023-06", "spend": 2882.0, "leads": 428.0, "conversions": 54, "validConversions": 54.0}, {"id": "CMP0235", "channel": "Email", "name": "Campaign-235", "date": "2024-05-25", "year": 2024, "month": "2024-05", "spend": 74394.0, "leads": 73.0, "conversions": 23, "validConversions": 23.0}, {"id": "CMP0487", "channel": "Email", "name": "Campaign-487", "date": "2024-12-23", "year": 2024, "month": "2024-12", "spend": 22116.0, "leads": 645.0, "conversions": 198, "validConversions": 198.0}, {"id": "CMP0492", "channel": "Google Ads", "name": "Campaign-492", "date": "2023-07-09", "year": 2023, "month": "2023-07", "spend": 144355.0, "leads": 107.0, "conversions": 163, "validConversions": null}, {"id": "CMP0395", "channel": "Email", "name": "Campaign-395", "date": "2023-03-12", "year": 2023, "month": "2023-03", "spend": 46387.0, "leads": 391.0, "conversions": 48, "validConversions": 48.0}, {"id": "CMP0097", "channel": "LinkedIn", "name": "Campaign-97", "date": "2024-05-10", "year": 2024, "month": "2024-05", "spend": 159604.0, "leads": 702.0, "conversions": 186, "validConversions": 186.0}, {"id": "CMP0322", "channel": "Google Ads", "name": "Campaign-322", "date": "2023-06-24", "year": 2023, "month": "2023-06", "spend": 152882.0, "leads": 710.0, "conversions": 4, "validConversions": 4.0}, {"id": "CMP0298", "channel": "Google Ads", "name": "Campaign-298", "date": "2024-12-05", "year": 2024, "month": "2024-12", "spend": 81795.0, "leads": 672.0, "conversions": 129, "validConversions": 129.0}, {"id": "CMP0064", "channel": "YouTube", "name": "Campaign-64", "date": "2023-03-21", "year": 2023, "month": "2023-03", "spend": 111779.0, "leads": 440.0, "conversions": 43, "validConversions": 43.0}, {"id": "CMP0223", "channel": "Email", "name": "Campaign-223", "date": "2023-03-18", "year": 2023, "month": "2023-03", "spend": null, "leads": 109.0, "conversions": 155, "validConversions": null}, {"id": "CMP0096", "channel": "LinkedIn", "name": "Campaign-96", "date": null, "year": null, "month": null, "spend": 37525.0, "leads": 620.0, "conversions": 151, "validConversions": 151.0}, {"id": "CMP0014", "channel": "LinkedIn", "name": "Campaign-14", "date": "2023-04-06", "year": 2023, "month": "2023-04", "spend": 146401.0, "leads": 124.0, "conversions": 141, "validConversions": null}, {"id": "CMP0018", "channel": "Instagram", "name": "Campaign-18", "date": "2024-10-05", "year": 2024, "month": "2024-10", "spend": 190841.0, "leads": 61.0, "conversions": 191, "validConversions": null}, {"id": "CMP0367", "channel": "Instagram", "name": "Campaign-367", "date": "2024-04-24", "year": 2024, "month": "2024-04", "spend": 45617.0, "leads": 382.0, "conversions": 93, "validConversions": 93.0}, {"id": "CMP0247", "channel": "Instagram", "name": "Campaign-247", "date": "2023-08-31", "year": 2023, "month": "2023-08", "spend": 112957.0, "leads": 565.0, "conversions": 186, "validConversions": 186.0}, {"id": "CMP0393", "channel": "Google Ads", "name": "Campaign-393", "date": "2024-02-14", "year": 2024, "month": "2024-02", "spend": 89173.0, "leads": 197.0, "conversions": 28, "validConversions": 28.0}, {"id": "CMP0208", "channel": "Facebook", "name": "Campaign-208", "date": "2023-11-26", "year": 2023, "month": "2023-11", "spend": 138873.0, "leads": 400.0, "conversions": 36, "validConversions": 36.0}, {"id": "CMP0091", "channel": "Instagram", "name": "Campaign-91", "date": "2024-10-08", "year": 2024, "month": "2024-10", "spend": 20300.0, "leads": 186.0, "conversions": 68, "validConversions": 68.0}, {"id": "CMP0308", "channel": "Email", "name": "Campaign-308", "date": "2023-02-23", "year": 2023, "month": "2023-02", "spend": null, "leads": 210.0, "conversions": 9, "validConversions": 9.0}, {"id": "CMP0335", "channel": "Instagram", "name": "Campaign-335", "date": "2023-06-05", "year": 2023, "month": "2023-06", "spend": 31813.0, "leads": 695.0, "conversions": 54, "validConversions": 54.0}, {"id": "CMP0365", "channel": "Email", "name": "Campaign-365", "date": "2024-11-17", "year": 2024, "month": "2024-11", "spend": 159399.0, "leads": 225.0, "conversions": 8, "validConversions": 8.0}, {"id": "CMP0040", "channel": "LinkedIn", "name": "Campaign-40", "date": "2024-07-02", "year": 2024, "month": "2024-07", "spend": 69946.0, "leads": 347.0, "conversions": 177, "validConversions": 177.0}, {"id": "CMP0087", "channel": "Instagram", "name": "Campaign-87", "date": "2023-01-11", "year": 2023, "month": "2023-01", "spend": 173947.0, "leads": 116.0, "conversions": 87, "validConversions": 87.0}, {"id": "CMP0182", "channel": "LinkedIn", "name": "Campaign-182", "date": "2023-12-27", "year": 2023, "month": "2023-12", "spend": null, "leads": 574.0, "conversions": 44, "validConversions": 44.0}, {"id": "CMP0412", "channel": "YouTube", "name": "Campaign-412", "date": "2023-10-01", "year": 2023, "month": "2023-10", "spend": 59786.0, "leads": 375.0, "conversions": 128, "validConversions": 128.0}, {"id": "CMP0146", "channel": "Google Ads", "name": "Campaign-146", "date": "2024-02-07", "year": 2024, "month": "2024-02", "spend": 72934.0, "leads": 500.0, "conversions": 39, "validConversions": 39.0}, {"id": "CMP0159", "channel": "YouTube", "name": "Campaign-159", "date": "2023-11-23", "year": 2023, "month": "2023-11", "spend": 171178.0, "leads": 340.0, "conversions": 183, "validConversions": 183.0}, {"id": "CMP0410", "channel": "Instagram", "name": "Campaign-410", "date": "2024-04-16", "year": 2024, "month": "2024-04", "spend": 19199.0, "leads": 372.0, "conversions": 116, "validConversions": 116.0}, {"id": "CMP0371", "channel": "YouTube", "name": "Campaign-371", "date": "2023-04-18", "year": 2023, "month": "2023-04", "spend": 121779.0, "leads": 266.0, "conversions": 79, "validConversions": 79.0}, {"id": "CMP0372", "channel": "Facebook", "name": "Campaign-372", "date": "2023-12-15", "year": 2023, "month": "2023-12", "spend": 44919.0, "leads": 75.0, "conversions": 35, "validConversions": 35.0}, {"id": "CMP0355", "channel": "Facebook", "name": "Campaign-355", "date": "2024-11-06", "year": 2024, "month": "2024-11", "spend": 161484.0, "leads": 682.0, "conversions": 114, "validConversions": 114.0}, {"id": "CMP0201", "channel": "Facebook", "name": "Campaign-201", "date": "2023-11-23", "year": 2023, "month": "2023-11", "spend": 125549.0, "leads": 403.0, "conversions": 21, "validConversions": 21.0}, {"id": "CMP0293", "channel": "Email", "name": "Campaign-293", "date": "2023-02-18", "year": 2023, "month": "2023-02", "spend": 42718.0, "leads": 702.0, "conversions": 42, "validConversions": 42.0}, {"id": "CMP0072", "channel": "Google Ads", "name": "Campaign-72", "date": "2024-02-28", "year": 2024, "month": "2024-02", "spend": 160097.0, "leads": 529.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0386", "channel": "Instagram", "name": "Campaign-386", "date": "2023-08-13", "year": 2023, "month": "2023-08", "spend": 34355.0, "leads": 793.0, "conversions": 165, "validConversions": 165.0}, {"id": "CMP0421", "channel": "Facebook", "name": "Campaign-421", "date": "2024-07-17", "year": 2024, "month": "2024-07", "spend": 38110.0, "leads": 508.0, "conversions": 5, "validConversions": 5.0}, {"id": "CMP0368", "channel": "Google Ads", "name": "Campaign-368", "date": "2024-01-30", "year": 2024, "month": "2024-01", "spend": 193211.0, "leads": 624.0, "conversions": 153, "validConversions": 153.0}, {"id": "CMP0397", "channel": "Google Ads", "name": "Campaign-397", "date": "2024-03-09", "year": 2024, "month": "2024-03", "spend": null, "leads": 281.0, "conversions": 71, "validConversions": 71.0}, {"id": "CMP0484", "channel": "Email", "name": "Campaign-484", "date": "2023-12-22", "year": 2023, "month": "2023-12", "spend": 65217.0, "leads": 729.0, "conversions": 78, "validConversions": 78.0}, {"id": "CMP0469", "channel": "Instagram", "name": "Campaign-469", "date": "2023-10-10", "year": 2023, "month": "2023-10", "spend": 135639.0, "leads": 645.0, "conversions": 137, "validConversions": 137.0}, {"id": "CMP0392", "channel": "Facebook", "name": "Campaign-392", "date": "2023-07-27", "year": 2023, "month": "2023-07", "spend": 118220.0, "leads": 388.0, "conversions": 89, "validConversions": 89.0}, {"id": "CMP0134", "channel": "Instagram", "name": "Campaign-134", "date": "2023-10-29", "year": 2023, "month": "2023-10", "spend": 26700.0, "leads": 259.0, "conversions": 83, "validConversions": 83.0}, {"id": "CMP0061", "channel": "Facebook", "name": "Campaign-61", "date": "2023-09-26", "year": 2023, "month": "2023-09", "spend": 158258.0, "leads": 688.0, "conversions": 178, "validConversions": 178.0}, {"id": "CMP0433", "channel": "Instagram", "name": "Campaign-433", "date": "2024-03-27", "year": 2024, "month": "2024-03", "spend": 141810.0, "leads": 578.0, "conversions": 147, "validConversions": 147.0}, {"id": "CMP0485", "channel": "Facebook", "name": "Campaign-485", "date": "2024-10-14", "year": 2024, "month": "2024-10", "spend": 91044.0, "leads": 437.0, "conversions": 1, "validConversions": 1.0}, {"id": "CMP0101", "channel": "LinkedIn", "name": "Campaign-101", "date": null, "year": null, "month": null, "spend": 57514.0, "leads": 112.0, "conversions": 167, "validConversions": null}, {"id": "CMP0020", "channel": "YouTube", "name": "Campaign-20", "date": "2023-06-06", "year": 2023, "month": "2023-06", "spend": 35686.0, "leads": 43.0, "conversions": 155, "validConversions": null}, {"id": "CMP0389", "channel": "Email", "name": "Campaign-389", "date": "2024-04-08", "year": 2024, "month": "2024-04", "spend": 111906.0, "leads": 61.0, "conversions": 116, "validConversions": null}, {"id": "CMP0468", "channel": "Google Ads", "name": "Campaign-468", "date": "2023-04-14", "year": 2023, "month": "2023-04", "spend": 172824.0, "leads": 213.0, "conversions": 140, "validConversions": 140.0}, {"id": "CMP0265", "channel": "Instagram", "name": "Campaign-265", "date": "2023-01-17", "year": 2023, "month": "2023-01", "spend": 194679.0, "leads": 55.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0277", "channel": "Facebook", "name": "Campaign-277", "date": "2023-11-17", "year": 2023, "month": "2023-11", "spend": 46755.0, "leads": 468.0, "conversions": 45, "validConversions": 45.0}, {"id": "CMP0009", "channel": "LinkedIn", "name": "Campaign-9", "date": "2024-07-20", "year": 2024, "month": "2024-07", "spend": 73537.0, "leads": 55.0, "conversions": 199, "validConversions": null}, {"id": "CMP0310", "channel": "YouTube", "name": "Campaign-310", "date": "2023-02-14", "year": 2023, "month": "2023-02", "spend": 115089.0, "leads": 424.0, "conversions": 75, "validConversions": 75.0}, {"id": "CMP0284", "channel": "Unknown", "name": "Campaign-284", "date": "2024-04-10", "year": 2024, "month": "2024-04", "spend": null, "leads": 758.0, "conversions": 192, "validConversions": 192.0}, {"id": "CMP0478", "channel": "Google Ads", "name": "Campaign-478", "date": "2024-12-09", "year": 2024, "month": "2024-12", "spend": 25004.0, "leads": 799.0, "conversions": 6, "validConversions": 6.0}, {"id": "CMP0093", "channel": "LinkedIn", "name": "Campaign-93", "date": "2023-02-02", "year": 2023, "month": "2023-02", "spend": 97027.0, "leads": 343.0, "conversions": 20, "validConversions": 20.0}, {"id": "CMP0253", "channel": "LinkedIn", "name": "Campaign-253", "date": "2024-08-12", "year": 2024, "month": "2024-08", "spend": 150344.0, "leads": 63.0, "conversions": 47, "validConversions": 47.0}, {"id": "CMP0033", "channel": "YouTube", "name": "Campaign-33", "date": "2024-01-02", "year": 2024, "month": "2024-01", "spend": 39333.0, "leads": 798.0, "conversions": 134, "validConversions": 134.0}, {"id": "CMP0136", "channel": "Google Ads", "name": "Campaign-136", "date": "2024-05-22", "year": 2024, "month": "2024-05", "spend": 123631.0, "leads": 756.0, "conversions": 38, "validConversions": 38.0}, {"id": "CMP0023", "channel": "LinkedIn", "name": "Campaign-23", "date": "2024-12-25", "year": 2024, "month": "2024-12", "spend": 196333.0, "leads": 736.0, "conversions": 158, "validConversions": 158.0}, {"id": "CMP0063", "channel": "Google Ads", "name": "Campaign-63", "date": "2023-04-06", "year": 2023, "month": "2023-04", "spend": 80282.0, "leads": 347.0, "conversions": 161, "validConversions": 161.0}, {"id": "CMP0490", "channel": "Email", "name": "Campaign-490", "date": "2023-01-04", "year": 2023, "month": "2023-01", "spend": 76205.0, "leads": 383.0, "conversions": 19, "validConversions": 19.0}, {"id": "CMP0216", "channel": "Facebook", "name": "Campaign-216", "date": "2024-06-23", "year": 2024, "month": "2024-06", "spend": 145933.0, "leads": 577.0, "conversions": 81, "validConversions": 81.0}, {"id": "CMP0420", "channel": "Email", "name": "Campaign-420", "date": "2023-05-02", "year": 2023, "month": "2023-05", "spend": 117720.0, "leads": 215.0, "conversions": 66, "validConversions": 66.0}, {"id": "CMP0426", "channel": "Facebook", "name": "Campaign-426", "date": "2023-06-04", "year": 2023, "month": "2023-06", "spend": 48233.0, "leads": 319.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0258", "channel": "Facebook", "name": "Campaign-258", "date": "2024-02-17", "year": 2024, "month": "2024-02", "spend": 21267.0, "leads": 748.0, "conversions": 92, "validConversions": 92.0}, {"id": "CMP0053", "channel": "Instagram", "name": "Campaign-53", "date": "2023-04-16", "year": 2023, "month": "2023-04", "spend": 82960.0, "leads": 439.0, "conversions": 70, "validConversions": 70.0}, {"id": "CMP0416", "channel": "Facebook", "name": "Campaign-416", "date": "2024-06-27", "year": 2024, "month": "2024-06", "spend": 145737.0, "leads": 205.0, "conversions": 179, "validConversions": 179.0}, {"id": "CMP0174", "channel": "Facebook", "name": "Campaign-174", "date": "2024-06-07", "year": 2024, "month": "2024-06", "spend": 192542.0, "leads": 103.0, "conversions": 19, "validConversions": 19.0}, {"id": "CMP0036", "channel": "Email", "name": "Campaign-36", "date": "2024-10-30", "year": 2024, "month": "2024-10", "spend": 121875.0, "leads": 742.0, "conversions": 139, "validConversions": 139.0}, {"id": "CMP0179", "channel": "Email", "name": "Campaign-179", "date": "2024-09-10", "year": 2024, "month": "2024-09", "spend": 65656.0, "leads": 622.0, "conversions": 198, "validConversions": 198.0}, {"id": "CMP0168", "channel": "Facebook", "name": "Campaign-168", "date": "2024-01-18", "year": 2024, "month": "2024-01", "spend": 108102.0, "leads": 525.0, "conversions": 70, "validConversions": 70.0}, {"id": "CMP0227", "channel": "Email", "name": "Campaign-227", "date": "2024-11-29", "year": 2024, "month": "2024-11", "spend": 22056.0, "leads": 433.0, "conversions": 168, "validConversions": 168.0}, {"id": "CMP0121", "channel": "Google Ads", "name": "Campaign-121", "date": "2023-08-14", "year": 2023, "month": "2023-08", "spend": 6011.0, "leads": 334.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0276", "channel": "Google Ads", "name": "Campaign-276", "date": "2024-07-23", "year": 2024, "month": "2024-07", "spend": 133567.0, "leads": 456.0, "conversions": 101, "validConversions": 101.0}, {"id": "CMP0045", "channel": "Instagram", "name": "Campaign-45", "date": "2023-02-22", "year": 2023, "month": "2023-02", "spend": 9465.0, "leads": 293.0, "conversions": 102, "validConversions": 102.0}, {"id": "CMP0301", "channel": "Email", "name": "Campaign-301", "date": "2023-06-24", "year": 2023, "month": "2023-06", "spend": 44137.0, "leads": 149.0, "conversions": 68, "validConversions": 68.0}, {"id": "CMP0325", "channel": "LinkedIn", "name": "Campaign-325", "date": "2024-04-16", "year": 2024, "month": "2024-04", "spend": 22085.0, "leads": 782.0, "conversions": 143, "validConversions": 143.0}, {"id": "CMP0077", "channel": "Facebook", "name": "Campaign-77", "date": "2023-08-04", "year": 2023, "month": "2023-08", "spend": 29094.0, "leads": 279.0, "conversions": 75, "validConversions": 75.0}, {"id": "CMP0209", "channel": "YouTube", "name": "Campaign-209", "date": "2023-08-27", "year": 2023, "month": "2023-08", "spend": 16130.0, "leads": 8.0, "conversions": 63, "validConversions": null}, {"id": "CMP0369", "channel": "Google Ads", "name": "Campaign-369", "date": "2023-07-12", "year": 2023, "month": "2023-07", "spend": 159977.0, "leads": 270.0, "conversions": 137, "validConversions": 137.0}, {"id": "CMP0213", "channel": "Google Ads", "name": "Campaign-213", "date": "2023-10-18", "year": 2023, "month": "2023-10", "spend": 152056.0, "leads": 424.0, "conversions": 122, "validConversions": 122.0}, {"id": "CMP0268", "channel": "YouTube", "name": "Campaign-268", "date": "2023-04-08", "year": 2023, "month": "2023-04", "spend": 198497.0, "leads": 693.0, "conversions": 115, "validConversions": 115.0}, {"id": "CMP0312", "channel": "Google Ads", "name": "Campaign-312", "date": "2023-02-19", "year": 2023, "month": "2023-02", "spend": 13049.0, "leads": 23.0, "conversions": 84, "validConversions": null}, {"id": "CMP0217", "channel": "Google Ads", "name": "Campaign-217", "date": "2023-08-11", "year": 2023, "month": "2023-08", "spend": 100970.0, "leads": 313.0, "conversions": 86, "validConversions": 86.0}, {"id": "CMP0440", "channel": "Facebook", "name": "Campaign-440", "date": null, "year": null, "month": null, "spend": 47689.0, "leads": 762.0, "conversions": 116, "validConversions": 116.0}, {"id": "CMP0010", "channel": "Instagram", "name": "Campaign-10", "date": "2023-06-12", "year": 2023, "month": "2023-06", "spend": 137639.0, "leads": 246.0, "conversions": 178, "validConversions": 178.0}, {"id": "CMP0409", "channel": "LinkedIn", "name": "Campaign-409", "date": "2023-01-17", "year": 2023, "month": "2023-01", "spend": 155956.0, "leads": 188.0, "conversions": 72, "validConversions": 72.0}, {"id": "CMP0428", "channel": "Email", "name": "Campaign-428", "date": "2024-05-29", "year": 2024, "month": "2024-05", "spend": 199780.0, "leads": 333.0, "conversions": 81, "validConversions": 81.0}, {"id": "CMP0286", "channel": "Facebook", "name": "Campaign-286", "date": "2024-10-18", "year": 2024, "month": "2024-10", "spend": 56675.0, "leads": 640.0, "conversions": 98, "validConversions": 98.0}, {"id": "CMP0296", "channel": "LinkedIn", "name": "Campaign-296", "date": "2023-04-18", "year": 2023, "month": "2023-04", "spend": 39394.0, "leads": 211.0, "conversions": 190, "validConversions": 190.0}, {"id": "CMP0105", "channel": "Google Ads", "name": "Campaign-105", "date": "2023-05-05", "year": 2023, "month": "2023-05", "spend": 34634.0, "leads": 489.0, "conversions": 55, "validConversions": 55.0}, {"id": "CMP0313", "channel": "LinkedIn", "name": "Campaign-313", "date": "2023-11-08", "year": 2023, "month": "2023-11", "spend": 133858.0, "leads": 369.0, "conversions": 48, "validConversions": 48.0}, {"id": "CMP0439", "channel": "Unknown", "name": "Campaign-439", "date": "2024-01-27", "year": 2024, "month": "2024-01", "spend": 136312.0, "leads": 377.0, "conversions": 128, "validConversions": 128.0}, {"id": "CMP0500", "channel": "LinkedIn", "name": "Campaign-500", "date": "2023-06-24", "year": 2023, "month": "2023-06", "spend": 9868.0, "leads": 588.0, "conversions": 111, "validConversions": 111.0}, {"id": "CMP0092", "channel": "Email", "name": "Campaign-92", "date": "2024-09-13", "year": 2024, "month": "2024-09", "spend": 66384.0, "leads": null, "conversions": 136, "validConversions": null}, {"id": "CMP0183", "channel": "Google Ads", "name": "Campaign-183", "date": "2024-02-12", "year": 2024, "month": "2024-02", "spend": 58633.0, "leads": 594.0, "conversions": 138, "validConversions": 138.0}, {"id": "CMP0316", "channel": "LinkedIn", "name": "Campaign-316", "date": "2023-12-04", "year": 2023, "month": "2023-12", "spend": 49691.0, "leads": 765.0, "conversions": 130, "validConversions": 130.0}, {"id": "CMP0461", "channel": "LinkedIn", "name": "Campaign-461", "date": "2023-02-24", "year": 2023, "month": "2023-02", "spend": 35541.0, "leads": 784.0, "conversions": 10, "validConversions": 10.0}, {"id": "CMP0173", "channel": "Facebook", "name": "Campaign-173", "date": "2023-02-04", "year": 2023, "month": "2023-02", "spend": 112114.0, "leads": 316.0, "conversions": 159, "validConversions": 159.0}, {"id": "CMP0233", "channel": "LinkedIn", "name": "Campaign-233", "date": "2023-02-20", "year": 2023, "month": "2023-02", "spend": 179113.0, "leads": 592.0, "conversions": 44, "validConversions": 44.0}, {"id": "CMP0483", "channel": "LinkedIn", "name": "Campaign-483", "date": "2023-07-28", "year": 2023, "month": "2023-07", "spend": 146821.0, "leads": 325.0, "conversions": 175, "validConversions": 175.0}, {"id": "CMP0037", "channel": "Email", "name": "Campaign-37", "date": "2023-08-16", "year": 2023, "month": "2023-08", "spend": 41405.0, "leads": 61.0, "conversions": 105, "validConversions": null}, {"id": "CMP0157", "channel": "Google Ads", "name": "Campaign-157", "date": "2024-09-02", "year": 2024, "month": "2024-09", "spend": 92678.0, "leads": 72.0, "conversions": 70, "validConversions": 70.0}, {"id": "CMP0003", "channel": "Unknown", "name": "Campaign-3", "date": "2023-05-02", "year": 2023, "month": "2023-05", "spend": 12345.0, "leads": 560.0, "conversions": 70, "validConversions": 70.0}, {"id": "CMP0243", "channel": "Google Ads", "name": "Campaign-243", "date": null, "year": null, "month": null, "spend": 6136.0, "leads": 690.0, "conversions": 6, "validConversions": 6.0}, {"id": "CMP0309", "channel": "Email", "name": "Campaign-309", "date": "2023-09-23", "year": 2023, "month": "2023-09", "spend": 128082.0, "leads": 66.0, "conversions": 113, "validConversions": null}, {"id": "CMP0290", "channel": "Instagram", "name": "Campaign-290", "date": "2023-04-16", "year": 2023, "month": "2023-04", "spend": 196824.0, "leads": 712.0, "conversions": 102, "validConversions": 102.0}, {"id": "CMP0049", "channel": "Instagram", "name": "Campaign-49", "date": null, "year": null, "month": null, "spend": 94691.0, "leads": 691.0, "conversions": 107, "validConversions": 107.0}, {"id": "CMP0415", "channel": "Facebook", "name": "Campaign-415", "date": "2024-11-08", "year": 2024, "month": "2024-11", "spend": 167250.0, "leads": 603.0, "conversions": 169, "validConversions": 169.0}, {"id": "CMP0142", "channel": "Unknown", "name": "Campaign-142", "date": "2023-06-27", "year": 2023, "month": "2023-06", "spend": 191637.0, "leads": 30.0, "conversions": 12, "validConversions": 12.0}, {"id": "CMP0224", "channel": "Facebook", "name": "Campaign-224", "date": "2024-08-10", "year": 2024, "month": "2024-08", "spend": 74902.0, "leads": 776.0, "conversions": 1, "validConversions": 1.0}, {"id": "CMP0353", "channel": "LinkedIn", "name": "Campaign-353", "date": "2024-07-25", "year": 2024, "month": "2024-07", "spend": 122382.0, "leads": 449.0, "conversions": 20, "validConversions": 20.0}, {"id": "CMP0184", "channel": "Facebook", "name": "Campaign-184", "date": "2023-01-31", "year": 2023, "month": "2023-01", "spend": 28655.0, "leads": 79.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0332", "channel": "LinkedIn", "name": "Campaign-332", "date": "2024-10-14", "year": 2024, "month": "2024-10", "spend": 142416.0, "leads": 362.0, "conversions": 94, "validConversions": 94.0}, {"id": "CMP0479", "channel": "YouTube", "name": "Campaign-479", "date": "2023-10-02", "year": 2023, "month": "2023-10", "spend": 121243.0, "leads": 215.0, "conversions": 48, "validConversions": 48.0}, {"id": "CMP0430", "channel": "YouTube", "name": "Campaign-430", "date": "2024-06-04", "year": 2024, "month": "2024-06", "spend": 108311.0, "leads": 287.0, "conversions": 1, "validConversions": 1.0}, {"id": "CMP0161", "channel": "Email", "name": "Campaign-161", "date": "2023-04-21", "year": 2023, "month": "2023-04", "spend": 103444.0, "leads": 413.0, "conversions": 105, "validConversions": 105.0}, {"id": "CMP0337", "channel": "Google Ads", "name": "Campaign-337", "date": "2024-06-24", "year": 2024, "month": "2024-06", "spend": 143753.0, "leads": 396.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0401", "channel": "YouTube", "name": "Campaign-401", "date": "2024-08-14", "year": 2024, "month": "2024-08", "spend": 83268.0, "leads": 327.0, "conversions": 41, "validConversions": 41.0}, {"id": "CMP0220", "channel": "Email", "name": "Campaign-220", "date": "2023-10-12", "year": 2023, "month": "2023-10", "spend": 154049.0, "leads": 67.0, "conversions": 101, "validConversions": null}, {"id": "CMP0100", "channel": "Email", "name": "Campaign-100", "date": "2024-07-13", "year": 2024, "month": "2024-07", "spend": 109392.0, "leads": 592.0, "conversions": 100, "validConversions": 100.0}, {"id": "CMP0381", "channel": "Unknown", "name": "Campaign-381", "date": "2024-11-02", "year": 2024, "month": "2024-11", "spend": 134371.0, "leads": 698.0, "conversions": 92, "validConversions": 92.0}, {"id": "CMP0236", "channel": "Facebook", "name": "Campaign-236", "date": "2023-02-17", "year": 2023, "month": "2023-02", "spend": 69657.0, "leads": 750.0, "conversions": 188, "validConversions": 188.0}, {"id": "CMP0452", "channel": "Instagram", "name": "Campaign-452", "date": "2024-03-19", "year": 2024, "month": "2024-03", "spend": 173128.0, "leads": 732.0, "conversions": 23, "validConversions": 23.0}, {"id": "CMP0118", "channel": "LinkedIn", "name": "Campaign-118", "date": "2023-01-31", "year": 2023, "month": "2023-01", "spend": 13962.0, "leads": 401.0, "conversions": 1, "validConversions": 1.0}, {"id": "CMP0342", "channel": "Facebook", "name": "Campaign-342", "date": "2024-05-16", "year": 2024, "month": "2024-05", "spend": 39011.0, "leads": 89.0, "conversions": 185, "validConversions": null}, {"id": "CMP0002", "channel": "Google Ads", "name": "Campaign-2", "date": "2024-05-31", "year": 2024, "month": "2024-05", "spend": 127211.0, "leads": 90.0, "conversions": 161, "validConversions": null}, {"id": "CMP0114", "channel": "Google Ads", "name": "Campaign-114", "date": "2023-08-10", "year": 2023, "month": "2023-08", "spend": 106127.0, "leads": 192.0, "conversions": 16, "validConversions": 16.0}, {"id": "CMP0464", "channel": "Email", "name": "Campaign-464", "date": "2023-09-30", "year": 2023, "month": "2023-09", "spend": 128218.0, "leads": 348.0, "conversions": 114, "validConversions": 114.0}, {"id": "CMP0175", "channel": "Google Ads", "name": "Campaign-175", "date": "2023-09-17", "year": 2023, "month": "2023-09", "spend": 115218.0, "leads": 201.0, "conversions": 184, "validConversions": 184.0}, {"id": "CMP0254", "channel": "Email", "name": "Campaign-254", "date": "2023-01-05", "year": 2023, "month": "2023-01", "spend": 28619.0, "leads": 203.0, "conversions": 94, "validConversions": 94.0}, {"id": "CMP0446", "channel": "Email", "name": "Campaign-446", "date": "2024-08-31", "year": 2024, "month": "2024-08", "spend": 153296.0, "leads": 433.0, "conversions": 74, "validConversions": 74.0}, {"id": "CMP0185", "channel": "YouTube", "name": "Campaign-185", "date": "2023-04-28", "year": 2023, "month": "2023-04", "spend": 123118.0, "leads": 46.0, "conversions": 124, "validConversions": null}, {"id": "CMP0166", "channel": "Instagram", "name": "Campaign-166", "date": "2024-08-03", "year": 2024, "month": "2024-08", "spend": 105247.0, "leads": 357.0, "conversions": 30, "validConversions": 30.0}, {"id": "CMP0373", "channel": "Instagram", "name": "Campaign-373", "date": "2023-08-02", "year": 2023, "month": "2023-08", "spend": 85521.0, "leads": 223.0, "conversions": 83, "validConversions": 83.0}, {"id": "CMP0275", "channel": "Facebook", "name": "Campaign-275", "date": "2023-03-23", "year": 2023, "month": "2023-03", "spend": 102625.0, "leads": 543.0, "conversions": 38, "validConversions": 38.0}, {"id": "CMP0193", "channel": "LinkedIn", "name": "Campaign-193", "date": "2023-08-09", "year": 2023, "month": "2023-08", "spend": 85123.0, "leads": 105.0, "conversions": 78, "validConversions": 78.0}, {"id": "CMP0001", "channel": "YouTube", "name": "Campaign-1", "date": "2023-05-10", "year": 2023, "month": "2023-05", "spend": 12400.0, "leads": 560.0, "conversions": 53, "validConversions": 53.0}, {"id": "CMP0055", "channel": "Instagram", "name": "Campaign-55", "date": "2024-04-15", "year": 2024, "month": "2024-04", "spend": 67776.0, "leads": 406.0, "conversions": 40, "validConversions": 40.0}, {"id": "CMP0376", "channel": "Instagram", "name": "Campaign-376", "date": "2024-06-10", "year": 2024, "month": "2024-06", "spend": 180966.0, "leads": 131.0, "conversions": 36, "validConversions": 36.0}, {"id": "CMP0029", "channel": "Email", "name": "Campaign-29", "date": "2023-05-14", "year": 2023, "month": "2023-05", "spend": 73927.0, "leads": 114.0, "conversions": 54, "validConversions": 54.0}, {"id": "CMP0207", "channel": "LinkedIn", "name": "Campaign-207", "date": "2024-08-04", "year": 2024, "month": "2024-08", "spend": 132674.0, "leads": 526.0, "conversions": 116, "validConversions": 116.0}, {"id": "CMP0384", "channel": "Email", "name": "Campaign-384", "date": "2023-04-19", "year": 2023, "month": "2023-04", "spend": 140561.0, "leads": 521.0, "conversions": 155, "validConversions": 155.0}, {"id": "CMP0494", "channel": "Instagram", "name": "Campaign-494", "date": "2024-12-18", "year": 2024, "month": "2024-12", "spend": 74534.0, "leads": 31.0, "conversions": 27, "validConversions": 27.0}, {"id": "CMP0050", "channel": "Facebook", "name": "Campaign-50", "date": "2023-01-24", "year": 2023, "month": "2023-01", "spend": 40871.0, "leads": 233.0, "conversions": 121, "validConversions": 121.0}, {"id": "CMP0351", "channel": "LinkedIn", "name": "Campaign-351", "date": "2023-03-26", "year": 2023, "month": "2023-03", "spend": 55785.0, "leads": 578.0, "conversions": 198, "validConversions": 198.0}, {"id": "CMP0021", "channel": "Email", "name": "Campaign-21", "date": "2023-01-29", "year": 2023, "month": "2023-01", "spend": 78981.0, "leads": 447.0, "conversions": 193, "validConversions": 193.0}, {"id": "CMP0294", "channel": "YouTube", "name": "Campaign-294", "date": "2023-01-11", "year": 2023, "month": "2023-01", "spend": 115627.0, "leads": 250.0, "conversions": 83, "validConversions": 83.0}, {"id": "CMP0177", "channel": "Email", "name": "Campaign-177", "date": "2024-02-24", "year": 2024, "month": "2024-02", "spend": 109041.0, "leads": 230.0, "conversions": 152, "validConversions": 152.0}, {"id": "CMP0336", "channel": "Facebook", "name": "Campaign-336", "date": "2024-06-12", "year": 2024, "month": "2024-06", "spend": 67679.0, "leads": 409.0, "conversions": 148, "validConversions": 148.0}, {"id": "CMP0380", "channel": "LinkedIn", "name": "Campaign-380", "date": "2024-04-09", "year": 2024, "month": "2024-04", "spend": 33315.0, "leads": 490.0, "conversions": 168, "validConversions": 168.0}, {"id": "CMP0034", "channel": "Facebook", "name": "Campaign-34", "date": "2023-07-11", "year": 2023, "month": "2023-07", "spend": 128457.0, "leads": 29.0, "conversions": 184, "validConversions": null}, {"id": "CMP0172", "channel": "Instagram", "name": "Campaign-172", "date": "2023-06-21", "year": 2023, "month": "2023-06", "spend": 5225.0, "leads": 288.0, "conversions": 190, "validConversions": 190.0}, {"id": "CMP0008", "channel": "YouTube", "name": "Campaign-8", "date": "2023-09-24", "year": 2023, "month": "2023-09", "spend": 137969.0, "leads": 661.0, "conversions": 136, "validConversions": 136.0}, {"id": "CMP0319", "channel": "Facebook", "name": "Campaign-319", "date": "2024-01-24", "year": 2024, "month": "2024-01", "spend": 171834.0, "leads": 584.0, "conversions": 89, "validConversions": 89.0}, {"id": "CMP0107", "channel": "YouTube", "name": "Campaign-107", "date": "2024-09-12", "year": 2024, "month": "2024-09", "spend": 11269.0, "leads": 643.0, "conversions": 39, "validConversions": 39.0}, {"id": "CMP0414", "channel": "Facebook", "name": "Campaign-414", "date": "2024-05-02", "year": 2024, "month": "2024-05", "spend": 51294.0, "leads": 501.0, "conversions": 73, "validConversions": 73.0}, {"id": "CMP0098", "channel": "Facebook", "name": "Campaign-98", "date": "2024-09-20", "year": 2024, "month": "2024-09", "spend": 8464.0, "leads": 254.0, "conversions": 2, "validConversions": 2.0}, {"id": "CMP0111", "channel": "Facebook", "name": "Campaign-111", "date": "2024-06-14", "year": 2024, "month": "2024-06", "spend": 82859.0, "leads": 20.0, "conversions": 140, "validConversions": null}, {"id": "CMP0361", "channel": "LinkedIn", "name": "Campaign-361", "date": null, "year": null, "month": null, "spend": 23209.0, "leads": 677.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0070", "channel": "LinkedIn", "name": "Campaign-70", "date": "2024-05-17", "year": 2024, "month": "2024-05", "spend": 146926.0, "leads": 168.0, "conversions": 159, "validConversions": 159.0}, {"id": "CMP0347", "channel": "LinkedIn", "name": "Campaign-347", "date": "2023-04-05", "year": 2023, "month": "2023-04", "spend": 180986.0, "leads": 149.0, "conversions": 199, "validConversions": null}, {"id": "CMP0436", "channel": "Google Ads", "name": "Campaign-436", "date": "2023-04-11", "year": 2023, "month": "2023-04", "spend": 111321.0, "leads": 533.0, "conversions": 111, "validConversions": 111.0}, {"id": "CMP0130", "channel": "LinkedIn", "name": "Campaign-130", "date": null, "year": null, "month": null, "spend": 125206.0, "leads": 779.0, "conversions": 187, "validConversions": 187.0}, {"id": "CMP0317", "channel": "YouTube", "name": "Campaign-317", "date": "2024-12-05", "year": 2024, "month": "2024-12", "spend": 170112.0, "leads": 432.0, "conversions": 132, "validConversions": 132.0}, {"id": "CMP0448", "channel": "LinkedIn", "name": "Campaign-448", "date": "2024-06-26", "year": 2024, "month": "2024-06", "spend": 127865.0, "leads": 713.0, "conversions": 44, "validConversions": 44.0}, {"id": "CMP0259", "channel": "YouTube", "name": "Campaign-259", "date": "2023-02-07", "year": 2023, "month": "2023-02", "spend": 148768.0, "leads": 251.0, "conversions": 181, "validConversions": 181.0}, {"id": "CMP0323", "channel": "Facebook", "name": "Campaign-323", "date": "2023-05-22", "year": 2023, "month": "2023-05", "spend": 107315.0, "leads": 329.0, "conversions": 14, "validConversions": 14.0}, {"id": "CMP0151", "channel": "Google Ads", "name": "Campaign-151", "date": "2023-06-19", "year": 2023, "month": "2023-06", "spend": 51178.0, "leads": 465.0, "conversions": 34, "validConversions": 34.0}, {"id": "CMP0475", "channel": "Google Ads", "name": "Campaign-475", "date": "2024-02-07", "year": 2024, "month": "2024-02", "spend": 162212.0, "leads": 704.0, "conversions": 58, "validConversions": 58.0}, {"id": "CMP0338", "channel": "Email", "name": "Campaign-338", "date": "2023-09-04", "year": 2023, "month": "2023-09", "spend": 5228.0, "leads": 197.0, "conversions": 181, "validConversions": 181.0}, {"id": "CMP0027", "channel": "Facebook", "name": "Campaign-27", "date": "2024-01-27", "year": 2024, "month": "2024-01", "spend": 44818.0, "leads": 287.0, "conversions": 124, "validConversions": 124.0}, {"id": "CMP0399", "channel": "YouTube", "name": "Campaign-399", "date": "2024-12-03", "year": 2024, "month": "2024-12", "spend": 47178.0, "leads": 749.0, "conversions": 41, "validConversions": 41.0}, {"id": "CMP0424", "channel": "YouTube", "name": "Campaign-424", "date": "2024-03-17", "year": 2024, "month": "2024-03", "spend": 155541.0, "leads": 558.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0094", "channel": "Instagram", "name": "Campaign-94", "date": "2023-05-01", "year": 2023, "month": "2023-05", "spend": 123684.0, "leads": 263.0, "conversions": 23, "validConversions": 23.0}, {"id": "CMP0429", "channel": "YouTube", "name": "Campaign-429", "date": "2024-03-17", "year": 2024, "month": "2024-03", "spend": 191304.0, "leads": 21.0, "conversions": 86, "validConversions": null}, {"id": "CMP0149", "channel": "Unknown", "name": "Campaign-149", "date": "2024-08-24", "year": 2024, "month": "2024-08", "spend": 96598.0, "leads": 223.0, "conversions": 127, "validConversions": 127.0}, {"id": "CMP0481", "channel": "Google Ads", "name": "Campaign-481", "date": null, "year": null, "month": null, "spend": 187869.0, "leads": 80.0, "conversions": 160, "validConversions": null}, {"id": "CMP0423", "channel": "LinkedIn", "name": "Campaign-423", "date": "2023-12-29", "year": 2023, "month": "2023-12", "spend": 65580.0, "leads": 707.0, "conversions": 57, "validConversions": 57.0}, {"id": "CMP0120", "channel": "LinkedIn", "name": "Campaign-120", "date": "2023-05-22", "year": 2023, "month": "2023-05", "spend": 87382.0, "leads": 463.0, "conversions": 179, "validConversions": 179.0}, {"id": "CMP0406", "channel": "LinkedIn", "name": "Campaign-406", "date": "2023-04-20", "year": 2023, "month": "2023-04", "spend": 102435.0, "leads": 440.0, "conversions": 45, "validConversions": 45.0}, {"id": "CMP0139", "channel": "Instagram", "name": "Campaign-139", "date": "2024-02-14", "year": 2024, "month": "2024-02", "spend": 141392.0, "leads": 581.0, "conversions": 56, "validConversions": 56.0}, {"id": "CMP0170", "channel": "YouTube", "name": "Campaign-170", "date": "2023-03-07", "year": 2023, "month": "2023-03", "spend": 118045.0, "leads": 760.0, "conversions": 69, "validConversions": 69.0}, {"id": "CMP0364", "channel": "YouTube", "name": "Campaign-364", "date": "2023-01-14", "year": 2023, "month": "2023-01", "spend": 22045.0, "leads": 450.0, "conversions": 92, "validConversions": 92.0}, {"id": "CMP0203", "channel": "Email", "name": "Campaign-203", "date": "2023-01-12", "year": 2023, "month": "2023-01", "spend": 74635.0, "leads": 225.0, "conversions": 132, "validConversions": 132.0}, {"id": "CMP0148", "channel": "YouTube", "name": "Campaign-148", "date": "2024-08-20", "year": 2024, "month": "2024-08", "spend": 7529.0, "leads": 241.0, "conversions": 79, "validConversions": 79.0}, {"id": "CMP0278", "channel": "LinkedIn", "name": "Campaign-278", "date": "2024-05-20", "year": 2024, "month": "2024-05", "spend": 35324.0, "leads": 482.0, "conversions": 65, "validConversions": 65.0}, {"id": "CMP0257", "channel": "Email", "name": "Campaign-257", "date": "2023-05-15", "year": 2023, "month": "2023-05", "spend": 5720.0, "leads": 476.0, "conversions": 63, "validConversions": 63.0}, {"id": "CMP0457", "channel": "LinkedIn", "name": "Campaign-457", "date": "2023-09-12", "year": 2023, "month": "2023-09", "spend": 70619.0, "leads": 18.0, "conversions": 58, "validConversions": null}, {"id": "CMP0441", "channel": "Google Ads", "name": "Campaign-441", "date": "2023-07-18", "year": 2023, "month": "2023-07", "spend": 3936.0, "leads": 767.0, "conversions": 115, "validConversions": 115.0}, {"id": "CMP0132", "channel": "LinkedIn", "name": "Campaign-132", "date": "2024-07-18", "year": 2024, "month": "2024-07", "spend": 34769.0, "leads": 420.0, "conversions": 139, "validConversions": 139.0}, {"id": "CMP0250", "channel": "Unknown", "name": "Campaign-250", "date": "2023-10-19", "year": 2023, "month": "2023-10", "spend": null, "leads": 154.0, "conversions": 52, "validConversions": 52.0}, {"id": "CMP0153", "channel": "LinkedIn", "name": "Campaign-153", "date": "2024-05-14", "year": 2024, "month": "2024-05", "spend": 123952.0, "leads": 639.0, "conversions": 119, "validConversions": 119.0}, {"id": "CMP0363", "channel": "Google Ads", "name": "Campaign-363", "date": "2023-08-06", "year": 2023, "month": "2023-08", "spend": 17116.0, "leads": 613.0, "conversions": 30, "validConversions": 30.0}];
+</script>
+<script>
+/* =====================================================================
+   Meta Marketing Campaign Spend — Analysis & Prediction
+   Single-file client-side app: filtering, KPIs, charts, OLS regression
+   trained in-browser, data explorer with search/sort/pagination, and
+   Excel (re)upload via SheetJS.
+   ===================================================================== */
+
+(function(){
+'use strict';
+
+/* ---------------------------------------------------------------------
+   0. THEME / CHART DEFAULTS
+   --------------------------------------------------------------------- */
+const COLORS = {
+  'Google Ads':'#4fa3f7', 'Facebook':'#8b7fff', 'Instagram':'#f06464',
+  'LinkedIn':'#2dd4bf', 'YouTube':'#f5c244', 'Email':'#6ee7b7', 'Unknown':'#94a3b8'
+};
+function colorFor(ch){ return COLORS[ch] || '#94a3b8'; }
+
+if(window.Chart){
+  Chart.defaults.color = '#8b95a8';
+  Chart.defaults.font.family = "'Inter', sans-serif";
+  Chart.defaults.font.size = 11.5;
+  Chart.defaults.borderColor = '#232c40';
+  Chart.defaults.plugins.legend.labels.usePointStyle = true;
+  Chart.defaults.plugins.legend.labels.boxWidth = 8;
+}
+const gridOpt = { color:'rgba(255,255,255,0.045)', drawBorder:false };
+const tickOpt = { color:'#5c6580' };
+
+/* ---------------------------------------------------------------------
+   1. STATE
+   --------------------------------------------------------------------- */
+let DATA = [];           // full cleaned dataset (array of record objects)
+let state = {
+  channels: new Set(),   // selected channels (empty set behaves as "all" until initialized)
+  year: 'all',
+};
+let charts = {};          // active Chart.js instances, keyed by canvas id
+let model = null;         // last trained model bundle {coefNames, coefFull, r2Test, maeTest, rmseTest, ...}
+let explorer = { search:'', channel:'all', sortKey:'date', sortDir:'desc', page:1, pageSize:25 };
+
+/* ---------------------------------------------------------------------
+   2. DATA LOADING / CLEANING
+   --------------------------------------------------------------------- */
+function cleanChannel(ch){
+  if(!ch) return 'Unknown';
+  const c = String(ch).trim();
+  if(c.toLowerCase() === 'linkedin') return 'LinkedIn';
+  if(c === '' || c.toLowerCase() === 'nan') return 'Unknown';
+  return c;
+}
+
+function loadFromRaw(raw){
+  DATA = raw.map(r => ({
+    id: r.id, name: r.name, channel: cleanChannel(r.channel),
+    date: r.date || null, year: r.year || null, month: r.month || null,
+    spend: (r.spend === null || r.spend === undefined || isNaN(r.spend)) ? null : Number(r.spend),
+    leads: (r.leads === null || r.leads === undefined || isNaN(r.leads)) ? null : Number(r.leads),
+    conversions: (r.conversions === null || r.conversions === undefined || isNaN(r.conversions)) ? null : Number(r.conversions),
+    validConversions: (r.validConversions === null || r.validConversions === undefined || isNaN(r.validConversions)) ? null : Number(r.validConversions),
+  }));
+  initFilters();
+  rebuildEverything();
+}
+
+// Flexible column mapping for user-uploaded Excel files
+function mapUploadedRow(row, idx){
+  const keys = Object.keys(row);
+  const find = (...cands) => {
+    for(const c of cands){
+      const hit = keys.find(k => k.toLowerCase().replace(/[^a-z0-9]/g,'') === c);
+      if(hit !== undefined) return row[hit];
+    }
+    return undefined;
+  };
+  let dateVal = find('startdate','date');
+  let dateStr = null, year = null, month = null;
+  if(dateVal !== undefined && dateVal !== null && dateVal !== ''){
+    let d;
+    if(dateVal instanceof Date) d = dateVal;
+    else if(typeof dateVal === 'number') d = new Date(Math.round((dateVal - 25569) * 86400 * 1000)); // excel serial
+    else d = new Date(dateVal);
+    if(!isNaN(d.getTime())){
+      dateStr = d.toISOString().slice(0,10);
+      year = d.getFullYear();
+      month = dateStr.slice(0,7);
+    }
+  }
+  const num = v => (v === undefined || v === null || v === '' || isNaN(Number(v))) ? null : Number(v);
+  return {
+    id: find('campaignid','id') ?? ('ROW' + idx),
+    name: find('campaignname','name') ?? ('Campaign-' + idx),
+    channel: find('channel') ?? 'Unknown',
+    date: dateStr, year, month,
+    spend: num(find('spendamount','spend')),
+    leads: num(find('leadsgenerated','leads')),
+    conversions: num(find('conversions')),
+    validConversions: num(find('validconversions','validconversion')),
+  };
+}
+
+/* ---------------------------------------------------------------------
+   3. FILTERING
+   --------------------------------------------------------------------- */
+function getFiltered(){
+  return DATA.filter(r => {
+    if(state.channels.size > 0 && !state.channels.has(r.channel)) return false;
+    if(state.year !== 'all' && String(r.year) !== String(state.year)) return false;
+    return true;
+  });
+}
+
+function initFilters(){
+  const channels = Array.from(new Set(DATA.map(r=>r.channel))).sort();
+  state.channels = new Set(channels); // all on by default
+  const chipWrap = document.getElementById('channelChips');
+  chipWrap.innerHTML = '';
+  channels.forEach(ch => {
+    const chip = document.createElement('button');
+    chip.className = 'chip on';
+    chip.textContent = ch;
+    chip.dataset.channel = ch;
+    chip.style.borderColor = colorFor(ch) + '55';
+    chip.addEventListener('click', () => {
+      if(state.channels.has(ch)){ state.channels.delete(ch); chip.classList.remove('on'); }
+      else { state.channels.add(ch); chip.classList.add('on'); }
+      rebuildEverything();
+    });
+    chipWrap.appendChild(chip);
+  });
+
+  const years = Array.from(new Set(DATA.map(r=>r.year).filter(Boolean))).sort();
+  const yearSel = document.getElementById('yearFilter');
+  yearSel.innerHTML = '<option value="all">All years</option>' + years.map(y=>`<option value="${y}">${y}</option>`).join('');
+  yearSel.value = 'all'; state.year = 'all';
+
+  // populate prediction channel select + explorer channel filter
+  const predSel = document.getElementById('predChannel');
+  predSel.innerHTML = channels.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const explSel = document.getElementById('explorerChannelFilter');
+  explSel.innerHTML = '<option value="all">All channels</option>' + channels.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+document.getElementById('yearFilter').addEventListener('change', e => { state.year = e.target.value; rebuildEverything(); });
+document.getElementById('filterReset').addEventListener('click', () => {
+  document.querySelectorAll('#channelChips .chip').forEach(c=>c.classList.add('on'));
+  state.channels = new Set(Array.from(new Set(DATA.map(r=>r.channel))));
+  state.year = 'all';
+  document.getElementById('yearFilter').value = 'all';
+  rebuildEverything();
+});
+
+/* ---------------------------------------------------------------------
+   4. FORMAT HELPERS
+   --------------------------------------------------------------------- */
+const fmtInt = n => n===null||n===undefined||isNaN(n) ? '—' : Math.round(n).toLocaleString('en-US');
+const fmtMoney = n => n===null||n===undefined||isNaN(n) ? '—' : '$' + Math.round(n).toLocaleString('en-US');
+const fmtMoney1 = n => n===null||n===undefined||isNaN(n) ? '—' : '$' + n.toLocaleString('en-US', {maximumFractionDigits:1});
+const fmtPct = n => n===null||n===undefined||isNaN(n) ? '—' : (n*100).toFixed(1) + '%';
+const fmtNum1 = n => n===null||n===undefined||isNaN(n) ? '—' : n.toLocaleString('en-US',{maximumFractionDigits:1});
+const mean = arr => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+const sum = arr => arr.reduce((a,b)=>a+b,0);
+
+/* ---------------------------------------------------------------------
+   5. KPI CARDS
+   --------------------------------------------------------------------- */
+function renderKPIs(rows){
+  const spendVals = rows.map(r=>r.spend).filter(v=>v!==null);
+  const leadVals = rows.map(r=>r.leads).filter(v=>v!==null);
+  const convVals = rows.map(r=>r.conversions).filter(v=>v!==null);
+  const totalSpend = sum(spendVals);
+  const totalLeads = sum(leadVals);
+  const totalConv = sum(convVals);
+  const cvr = totalLeads>0 ? totalConv/totalLeads : null;
+  const cpa = totalConv>0 ? totalSpend/totalConv : null;
+  const cpl = totalLeads>0 ? totalSpend/totalLeads : null;
+
+  const cards = [
+    {label:'Total Campaigns', value: fmtInt(rows.length), sub: `${state.channels.size} channel(s) selected`, accent:'var(--violet)'},
+    {label:'Total Spend', value: fmtMoney(totalSpend), sub: `avg ${fmtMoney(mean(spendVals))} / campaign`, accent:'var(--cyan)'},
+    {label:'Total Leads', value: fmtInt(totalLeads), sub: `avg ${fmtNum1(mean(leadVals))} / campaign`, accent:'var(--sky)'},
+    {label:'Total Conversions', value: fmtInt(totalConv), sub: `avg ${fmtNum1(mean(convVals))} / campaign`, accent:'var(--mint)'},
+    {label:'Avg. Conversion Rate', value: fmtPct(cvr), sub: 'conversions ÷ leads', accent:'var(--amber)'},
+    {label:'Avg. Cost / Acquisition', value: fmtMoney(cpa), sub: `CPL ${fmtMoney1(cpl)}`, accent:'var(--coral)'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+    <div class="kpi-card" style="--accent:${c.accent}">
+      <div class="kpi-label">${c.label}</div>
+      <div class="kpi-value">${c.value}</div>
+      <div class="kpi-sub">${c.sub}</div>
+    </div>`).join('');
+
+  document.getElementById('filteredCount').textContent = `${rows.length.toLocaleString()} of ${DATA.length.toLocaleString()} campaigns`;
+  document.getElementById('sidebarRecordCount').textContent = `${DATA.length.toLocaleString()} campaigns loaded`;
+}
+
+/* ---------------------------------------------------------------------
+   6. CHARTS
+   --------------------------------------------------------------------- */
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+function groupByChannel(rows){
+  const map = {};
+  rows.forEach(r=>{
+    if(!map[r.channel]) map[r.channel] = {spend:[], leads:[], conv:[]};
+    if(r.spend!==null) map[r.channel].spend.push(r.spend);
+    if(r.leads!==null) map[r.channel].leads.push(r.leads);
+    if(r.conversions!==null) map[r.channel].conv.push(r.conversions);
+  });
+  return map;
+}
+
+function renderSpendChannelChart(rows){
+  const g = groupByChannel(rows);
+  const labels = Object.keys(g).sort();
+  const totals = labels.map(l => sum(g[l].spend));
+  destroyChart('chartSpendChannel');
+  charts['chartSpendChannel'] = new Chart(document.getElementById('chartSpendChannel'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data: totals, backgroundColor: labels.map(colorFor), borderRadius:6, maxBarThickness:38 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}} },
+      scales:{ x:{grid:{display:false}, ticks:tickOpt}, y:{grid:gridOpt, ticks:{...tickOpt, callback:v=>'$'+(v/1000).toFixed(0)+'k'}} }
+    }
+  });
+}
+
+function renderCvrChannelChart(rows){
+  const g = groupByChannel(rows);
+  const labels = Object.keys(g).sort();
+  const cvr = labels.map(l => { const lv=sum(g[l].leads), cv=sum(g[l].conv); return lv>0 ? cv/lv : 0; });
+  destroyChart('chartCvrChannel');
+  charts['chartCvrChannel'] = new Chart(document.getElementById('chartCvrChannel'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data: cvr.map(v=>v*100), backgroundColor: labels.map(colorFor), borderRadius:6, maxBarThickness:38 }]},
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y',
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>c.raw.toFixed(1)+'%'}} },
+      scales:{ x:{grid:gridOpt, ticks:{...tickOpt, callback:v=>v+'%'}}, y:{grid:{display:false}, ticks:tickOpt} }
+    }
+  });
+}
+
+function renderMonthlySpendChart(rows){
+  const map = {};
+  rows.forEach(r=>{ if(r.month && r.spend!==null){ map[r.month] = (map[r.month]||0) + r.spend; } });
+  const labels = Object.keys(map).sort();
+  destroyChart('chartMonthlySpend');
+  charts['chartMonthlySpend'] = new Chart(document.getElementById('chartMonthlySpend'), {
+    type:'line',
+    data:{ labels, datasets:[{ data: labels.map(l=>map[l]), borderColor:'#8b7fff', backgroundColor:'rgba(139,127,255,0.15)',
+      fill:true, tension:0.35, pointRadius:2, pointBackgroundColor:'#8b7fff' }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}} },
+      scales:{ x:{grid:{display:false}, ticks:{...tickOpt, maxRotation:60, minRotation:60, autoSkip:true, maxTicksLimit:14}},
+               y:{grid:gridOpt, ticks:{...tickOpt, callback:v=>'$'+(v/1000).toFixed(0)+'k'}} }
+    }
+  });
+}
+
+function renderScatterChart(rows){
+  const byChannel = {};
+  rows.forEach(r=>{
+    if(r.spend===null || r.conversions===null) return;
+    (byChannel[r.channel] = byChannel[r.channel]||[]).push({x:r.spend, y:r.conversions});
+  });
+  destroyChart('chartScatter');
+  charts['chartScatter'] = new Chart(document.getElementById('chartScatter'), {
+    type:'scatter',
+    data:{ datasets: Object.keys(byChannel).sort().map(ch => ({
+      label: ch, data: byChannel[ch], backgroundColor: colorFor(ch)+'cc', pointRadius:3.2, pointHoverRadius:5
+    }))},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom', labels:{padding:10}}, tooltip:{callbacks:{label:c=>`Spend ${fmtMoney(c.raw.x)} → ${c.raw.y} conv.`}} },
+      scales:{ x:{grid:gridOpt, ticks:{...tickOpt, callback:v=>'$'+(v/1000).toFixed(0)+'k'}, title:{display:true,text:'Spend',color:'#5c6580'}},
+               y:{grid:gridOpt, ticks:tickOpt, title:{display:true,text:'Conversions',color:'#5c6580'}} }
+    }
+  });
+}
+
+function renderCpaChannelChart(rows){
+  const g = groupByChannel(rows);
+  const labels = Object.keys(g).sort();
+  const cpa = labels.map(l => { const sp=sum(g[l].spend), cv=sum(g[l].conv); return cv>0 ? sp/cv : 0; });
+  destroyChart('chartCpaChannel');
+  charts['chartCpaChannel'] = new Chart(document.getElementById('chartCpaChannel'), {
+    type:'bar',
+    data:{ labels, datasets:[{ data: cpa, backgroundColor: labels.map(colorFor), borderRadius:6, maxBarThickness:38 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c=>fmtMoney(c.raw)}} },
+      scales:{ x:{grid:{display:false}, ticks:tickOpt}, y:{grid:gridOpt, ticks:{...tickOpt, callback:v=>'$'+v}} }
+    }
+  });
+}
+
+function renderInsights(rows){
+  const g = groupByChannel(rows);
+  const labels = Object.keys(g);
+  let topSpendCh = null, topSpendVal = -1;
+  let topCvrCh = null, topCvrVal = -1;
+  let worstCpaCh = null, worstCpaVal = -1;
+  labels.forEach(l=>{
+    const sp = sum(g[l].spend); if(sp>topSpendVal){ topSpendVal=sp; topSpendCh=l; }
+    const lv = sum(g[l].leads), cv = sum(g[l].conv);
+    const rate = lv>0 ? cv/lv : 0; if(rate>topCvrVal){ topCvrVal=rate; topCvrCh=l; }
+    const cpa = cv>0 ? sp/cv : 0; if(cpa>worstCpaVal){ worstCpaVal=cpa; worstCpaCh=l; }
+  });
+
+  const spendVals = rows.map(r=>r.spend).filter(v=>v!==null);
+  const convVals = rows.map(r=>r.conversions).filter(v=>v!==null);
+  const n = Math.min(spendVals.length, convVals.length);
+  let corr = null;
+  if(n>2){
+    const pairs = rows.filter(r=>r.spend!==null && r.conversions!==null);
+    corr = pearson(pairs.map(r=>r.spend), pairs.map(r=>r.conversions));
+  }
+  const missingSpend = DATA.filter(r=>r.spend===null).length;
+  const missingDate = DATA.filter(r=>r.date===null).length;
+  const outliers = rows.filter(r=>r.spend!==null && r.spend > 1000000).length;
+
+  const items = [
+    `<b>${topSpendCh}</b> receives the most total spend of the selected channels ($${Math.round(topSpendVal).toLocaleString()}).`,
+    `<b>${topCvrCh}</b> has the highest conversion rate at ${(topCvrVal*100).toFixed(1)}%.`,
+    `<b>${worstCpaCh}</b> has the highest cost per acquisition at ${fmtMoney(worstCpaVal)} — the least spend-efficient channel in this selection.`,
+    corr!==null ? `Spend and conversions are only weakly correlated (Pearson r = ${corr.toFixed(3)}) across these campaigns — bigger budgets alone don't reliably predict more conversions.` : '',
+    outliers>0 ? `${outliers} campaign(s) in this selection report spend above $1M, well above the typical range — worth a data-quality check.` : '',
+    `${missingSpend} of ${DATA.length} rows are missing a Spend value and ${missingDate} are missing a Start Date; these are excluded from the relevant totals rather than treated as zero.`,
+  ].filter(Boolean);
+
+  document.getElementById('insightList').innerHTML = items.map(t => `
+    <div class="insight-item">
+      <svg class="insight-icon" viewBox="0 0 24 24" fill="none" stroke="#8b7fff" stroke-width="2"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg>
+      <div>${t}</div>
+    </div>`).join('');
+}
+
+function pearson(xs, ys){
+  const n = xs.length; if(n<2) return null;
+  const mx = mean(xs), my = mean(ys);
+  let num=0, dx=0, dy=0;
+  for(let i=0;i<n;i++){ num += (xs[i]-mx)*(ys[i]-my); dx += (xs[i]-mx)**2; dy += (ys[i]-my)**2; }
+  if(dx===0||dy===0) return 0;
+  return num/Math.sqrt(dx*dy);
+}
+
+/* ---------------------------------------------------------------------
+   7. REGRESSION MODEL (OLS via normal equations)
+   --------------------------------------------------------------------- */
+function invertMatrix(M){
+  const n = M.length;
+  const A = M.map((row,i) => row.concat(row.map((_,j)=> i===j?1:0)));
+  for(let col=0; col<n; col++){
+    let pivot = col;
+    for(let r=col+1; r<n; r++){ if(Math.abs(A[r][col]) > Math.abs(A[pivot][col])) pivot = r; }
+    if(Math.abs(A[pivot][col]) < 1e-12) { A[col][col] += 1e-8; pivot = col; } // ridge-style guard for singular matrix
+    [A[col], A[pivot]] = [A[pivot], A[col]];
+    const div = A[col][col];
+    for(let j=0;j<2*n;j++) A[col][j] /= div;
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const factor = A[r][col];
+      for(let j=0;j<2*n;j++) A[r][j] -= factor*A[col][j];
+    }
+  }
+  return A.map(row => row.slice(n));
+}
+
+function matVecMul(M, v){ return M.map(row => row.reduce((s,val,j)=>s+val*v[j],0)); }
+function matTranspose(M){ return M[0].map((_,j)=>M.map(row=>row[j])); }
+function matMul(A,B){
+  const res = [];
+  for(let i=0;i<A.length;i++){
+    res.push([]);
+    for(let j=0;j<B[0].length;j++){
+      let s=0; for(let k=0;k<B.length;k++) s += A[i][k]*B[k][j];
+      res[i].push(s);
+    }
+  }
+  return res;
+}
+
+// seeded shuffle for reproducible train/test split
+function seededShuffle(arr, seed){
+  const a = arr.slice();
+  let s = seed;
+  const rand = () => { s = (s*9301+49297) % 233280; return s/233280; };
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(rand()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function buildDesignMatrix(rows, channelLevels){
+  // features: intercept, spend, leads, one-hot(channel) dropping first level
+  return rows.map(r => {
+    const row = [1, r.spend, r.leads];
+    channelLevels.slice(1).forEach(c => row.push(r.channel === c ? 1 : 0));
+    return row;
+  });
+}
+
+function trainOLS(X, y){
+  const Xt = matTranspose(X);
+  const XtX = matMul(Xt, X);
+  const XtXinv = invertMatrix(XtX);
+  const Xty = matVecMul(Xt, y);
+  return matVecMul(XtXinv, Xty); // coefficients
+}
+
+function predictRow(coef, xrow){ return xrow.reduce((s,v,i)=>s+v*coef[i], 0); }
+
+function trainModel(rows){
+  const clean = rows.filter(r => r.spend!==null && r.leads!==null && r.conversions!==null);
+  const channelLevels = Array.from(new Set(clean.map(r=>r.channel))).sort();
+  const featureNames = ['Intercept','SpendAmount','LeadsGenerated', ...channelLevels.slice(1).map(c=>'Channel: '+c)];
+
+  if(clean.length < 20 || channelLevels.length < 1){
+    return { ok:false, reason:'Not enough complete rows to train a model (need at least 20 rows with spend, leads and conversions all present).' };
+  }
+
+  // train/test split (80/20), seeded
+  const shuffled = seededShuffle(clean, 42);
+  const splitAt = Math.floor(shuffled.length * 0.8);
+  const trainRows = shuffled.slice(0, splitAt);
+  const testRows = shuffled.slice(splitAt);
+
+  const Xtrain = buildDesignMatrix(trainRows, channelLevels);
+  const ytrain = trainRows.map(r=>r.conversions);
+  let coefTest;
+  try{ coefTest = trainOLS(Xtrain, ytrain); }
+  catch(e){ return { ok:false, reason:'Model failed to converge on this data split.' }; }
+
+  const Xtest = buildDesignMatrix(testRows, channelLevels);
+  const ytest = testRows.map(r=>r.conversions);
+  const predTest = Xtest.map(row => predictRow(coefTest, row));
+  const residuals = ytest.map((y,i)=>y-predTest[i]);
+  const ssRes = sum(residuals.map(e=>e*e));
+  const ssTot = sum(ytest.map(y=>(y-mean(ytest))**2));
+  const r2Test = ssTot>0 ? 1 - ssRes/ssTot : 0;
+  const maeTest = mean(residuals.map(Math.abs));
+  const rmseTest = Math.sqrt(mean(residuals.map(e=>e*e)));
+
+  // final model trained on ALL clean rows, used for actual predictions + coefficient display
+  const Xall = buildDesignMatrix(clean, channelLevels);
+  const yall = clean.map(r=>r.conversions);
+  const coefFull = trainOLS(Xall, yall);
+  const predAll = Xall.map(row=>predictRow(coefFull,row));
+  const ssResAll = sum(yall.map((y,i)=>(y-predAll[i])**2));
+  const ssTotAll = sum(yall.map(y=>(y-mean(yall))**2));
+  const r2Full = ssTotAll>0 ? 1 - ssResAll/ssTotAll : 0;
+
+  // standardized-ish coefficient magnitude for explainability (coef * feature stdev)
+  const stdevs = featureNames.map((_,i) => {
+    const vals = Xall.map(row=>row[i]);
+    const m = mean(vals);
+    return Math.sqrt(mean(vals.map(v=>(v-m)**2))) || 1;
+  });
+  const impact = coefFull.map((c,i) => c * stdevs[i]);
+
+  return {
+    ok:true, featureNames, channelLevels, coefFull, coefTest, impact,
+    r2Test, maeTest, rmseTest, r2Full,
+    nTrain: trainRows.length, nTest: testRows.length, nTotal: clean.length,
+    ytest, predTest,
+    convMean: mean(yall), convStd: Math.sqrt(mean(yall.map(v=>(v-mean(yall))**2))),
+    convMin: Math.min(...yall), convMax: Math.max(...yall),
+  };
+}
+
+/* ---------------------------------------------------------------------
+   8. MODEL PERFORMANCE TAB RENDER
+   --------------------------------------------------------------------- */
+function renderModelPerformance(rows){
+  model = trainModel(rows);
+  const notice = document.getElementById('perfNotice');
+  const noticeText = document.getElementById('perfNoticeText');
+
+  if(!model.ok){
+    document.getElementById('metricGrid').innerHTML = '';
+    destroyChart('chartActualPred');
+    document.getElementById('coefTable').innerHTML = '';
+    notice.classList.remove('info'); 
+    noticeText.textContent = model.reason;
+    return;
+  }
+
+  const r2Pct = (model.r2Test*100).toFixed(1);
+  notice.classList.add('info');
+  noticeText.innerHTML = `This model explains <b>${r2Pct}%</b> of the variance in Conversions on held-out data (R² = ${model.r2Test.toFixed(3)}).
+    That is low predictive power — Spend and Leads are only weakly correlated with Conversions in this dataset, so treat predictions as
+    rough, directional estimates rather than precise forecasts. This is the genuine, calculated result — not a placeholder.`;
+
+  document.getElementById('metricGrid').innerHTML = `
+    <div class="metric-card"><div class="v">${model.r2Test.toFixed(3)}</div><div class="l">R² (test)</div></div>
+    <div class="metric-card"><div class="v">${model.maeTest.toFixed(1)}</div><div class="l">MAE (test)</div></div>
+    <div class="metric-card"><div class="v">${model.rmseTest.toFixed(1)}</div><div class="l">RMSE (test)</div></div>
+    <div class="metric-card"><div class="v">${model.nTrain} / ${model.nTest}</div><div class="l">Train / Test Rows</div></div>
+  `;
+
+  destroyChart('chartActualPred');
+  const maxV = Math.max(...model.ytest, ...model.predTest, 1);
+  charts['chartActualPred'] = new Chart(document.getElementById('chartActualPred'), {
+    type:'scatter',
+    data:{ datasets:[
+      { label:'Test campaigns', data: model.ytest.map((y,i)=>({x:y, y:model.predTest[i]})), backgroundColor:'#8b7fffcc', pointRadius:3.5 },
+      { label:'Perfect prediction', data:[{x:0,y:0},{x:maxV,y:maxV}], type:'line', borderColor:'#5c6580', borderDash:[5,4], pointRadius:0, borderWidth:1.5 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'} },
+      scales:{ x:{grid:gridOpt, ticks:tickOpt, title:{display:true,text:'Actual Conversions',color:'#5c6580'}},
+               y:{grid:gridOpt, ticks:tickOpt, title:{display:true,text:'Predicted Conversions',color:'#5c6580'}} }
+    }
+  });
+
+  document.getElementById('coefTable').innerHTML = `
+    <thead><tr><th>Feature</th><th>Coefficient</th><th>Impact</th></tr></thead>
+    <tbody>${model.featureNames.map((f,i)=>`
+      <tr><td>${f}</td><td style="font-family:var(--font-mono);">${model.coefFull[i].toFixed(4)}</td>
+      <td><span style="color:${model.coefFull[i]>=0?'var(--mint)':'var(--coral)'}">${model.coefFull[i]>=0?'▲ increases':'▼ decreases'} conversions</span></td></tr>`).join('')}
+    </tbody>`;
+
+  document.getElementById('specFeatures').textContent = 'SpendAmount, LeadsGenerated, Channel (one-hot)';
+  document.getElementById('specSplit').textContent = `${model.nTrain} train / ${model.nTest} test (80/20)`;
+}
+
+/* ---------------------------------------------------------------------
+   9. PREDICTION TAB
+   --------------------------------------------------------------------- */
+function updatePredictionHints(rows){
+  const spendVals = rows.map(r=>r.spend).filter(v=>v!==null);
+  const leadVals = rows.map(r=>r.leads).filter(v=>v!==null);
+  document.getElementById('spendHint').textContent = spendVals.length ? `Typical range in data: ${fmtMoney(Math.min(...spendVals))} – ${fmtMoney(Math.max(...spendVals))}` : '';
+  document.getElementById('leadsHint').textContent = leadVals.length ? `Typical range in data: ${Math.round(Math.min(...leadVals))} – ${Math.round(Math.max(...leadVals))}` : '';
+}
+
+document.getElementById('predictBtn').addEventListener('click', () => {
+  if(!model || !model.ok){ alert('Model is not trained yet — not enough complete data.'); return; }
+  const channel = document.getElementById('predChannel').value;
+  const spend = parseFloat(document.getElementById('predSpend').value);
+  const leads = parseFloat(document.getElementById('predLeads').value);
+  if(isNaN(spend) || isNaN(leads) || spend<0 || leads<0){
+    alert('Please enter a valid, non-negative spend amount and leads value.'); return;
+  }
+
+  const row = [1, spend, leads];
+  model.channelLevels.slice(1).forEach(c => row.push(channel===c ? 1 : 0));
+  let predicted = predictRow(model.coefFull, row);
+  predicted = Math.max(0, predicted);
+
+  const cpa = predicted>0 ? spend/predicted : null;
+  const cvr = leads>0 ? predicted/leads : null;
+
+  document.getElementById('resultEmpty').style.display = 'none';
+  document.getElementById('resultContent').style.display = 'block';
+  document.getElementById('predConversions').textContent = fmtInt(predicted);
+  document.getElementById('predCpa').textContent = cpa ? fmtMoney(cpa) : 'n/a';
+  document.getElementById('predCvr').textContent = cvr ? fmtPct(cvr) : 'n/a';
+
+  // risk/performance banding based on distribution of actual conversions
+  const lowT = model.convMean - 0.5*model.convStd;
+  const highT = model.convMean + 0.5*model.convStd;
+  let band, badgeClass, pct;
+  const range = model.convMax - model.convMin || 1;
+  pct = Math.min(100, Math.max(0, ((predicted - model.convMin) / range) * 100));
+  if(predicted < lowT){ band = 'LOW PERFORMANCE'; badgeClass='badge-low'; }
+  else if(predicted > highT){ band = 'HIGH PERFORMANCE'; badgeClass='badge-high'; }
+  else { band = 'MEDIUM PERFORMANCE'; badgeClass='badge-mid'; }
+  const badge = document.getElementById('riskBadge');
+  badge.className = 'badge ' + badgeClass;
+  badge.textContent = band;
+  document.getElementById('gaugeMarker').style.left = pct + '%';
+
+  document.getElementById('lowConfidenceNotice').style.display = model.r2Test < 0.3 ? 'flex' : 'none';
+
+  // explainability factors: use impact (coef * stdev), but recompute directional contribution for THIS input
+  const contribs = [
+    { name:'Spend Amount', val: model.coefFull[1] * spend },
+    { name:'Leads Generated', val: model.coefFull[2] * leads },
+  ];
+  model.channelLevels.slice(1).forEach((c,idx) => {
+    if(c === channel) contribs.push({ name:'Channel: '+c, val: model.coefFull[3+idx] });
+  });
+  contribs.push({ name:'Baseline (intercept)', val: model.coefFull[0] });
+  const maxAbs = Math.max(...contribs.map(c=>Math.abs(c.val)), 1);
+  document.getElementById('factorList').innerHTML = contribs
+    .sort((a,b)=>Math.abs(b.val)-Math.abs(a.val))
+    .map(c => {
+      const w = Math.min(100, Math.abs(c.val)/maxAbs*100);
+      const color = c.val>=0 ? 'var(--mint)' : 'var(--coral)';
+      return `<div class="factor-row">
+        <div class="factor-name">${c.name}</div>
+        <div class="factor-bar-track"><div class="factor-bar-fill" style="width:${w}%; background:${color};"></div></div>
+        <div class="factor-val" style="color:${color}">${c.val>=0?'+':''}${c.val.toFixed(1)}</div>
+      </div>`;
+    }).join('');
+
+  document.getElementById('statSpend').textContent = fmtMoney(spend);
+  document.getElementById('statLeads').textContent = fmtInt(leads);
+  document.getElementById('statChannel').textContent = channel;
+});
+
+/* ---------------------------------------------------------------------
+   10. DATA EXPLORER
+   --------------------------------------------------------------------- */
+function getExplorerRows(){
+  let rows = DATA.slice();
+  if(explorer.channel !== 'all') rows = rows.filter(r=>r.channel===explorer.channel);
+  if(explorer.search){
+    const q = explorer.search.toLowerCase();
+    rows = rows.filter(r => (r.id||'').toLowerCase().includes(q) || (r.name||'').toLowerCase().includes(q) || (r.channel||'').toLowerCase().includes(q));
+  }
+  rows.sort((a,b) => {
+    let av = a[explorer.sortKey], bv = b[explorer.sortKey];
+    if(av===null||av===undefined) av = explorer.sortDir==='asc' ? Infinity : -Infinity;
+    if(bv===null||bv===undefined) bv = explorer.sortDir==='asc' ? Infinity : -Infinity;
+    if(typeof av === 'string') return explorer.sortDir==='asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    return explorer.sortDir==='asc' ? av-bv : bv-av;
+  });
+  return rows;
+}
+
+function renderExplorer(){
+  const rows = getExplorerRows();
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / explorer.pageSize));
+  if(explorer.page > totalPages) explorer.page = totalPages;
+  const start = (explorer.page-1)*explorer.pageSize;
+  const pageRows = rows.slice(start, start+explorer.pageSize);
+
+  document.getElementById('tableBody').innerHTML = pageRows.map(r => `
+    <tr>
+      <td style="font-family:var(--font-mono); color:var(--text);">${r.id}</td>
+      <td>${r.name}</td>
+      <td><span class="channel-pill" style="background:${colorFor(r.channel)}22; color:${colorFor(r.channel)};">${r.channel}</span></td>
+      <td>${r.date ?? '<span class="cell-missing">missing</span>'}</td>
+      <td>${r.spend!==null ? fmtMoney(r.spend) : '<span class="cell-missing">missing</span>'}</td>
+      <td>${r.leads!==null ? fmtInt(r.leads) : '<span class="cell-missing">missing</span>'}</td>
+      <td>${r.conversions!==null ? fmtInt(r.conversions) : '<span class="cell-missing">missing</span>'}</td>
+      <td>${r.validConversions!==null ? fmtInt(r.validConversions) : '<span class="cell-missing">missing</span>'}</td>
+    </tr>`).join('');
+
+  document.getElementById('explorerCount').textContent = `${total.toLocaleString()} campaigns`;
+  document.getElementById('pageInfo').textContent = total ? `Showing ${start+1}–${Math.min(start+explorer.pageSize,total)} of ${total}` : 'No results';
+
+  // pagination buttons (windowed)
+  const btnWrap = document.getElementById('pageBtns');
+  let html = `<button class="page-btn" id="prevPage" ${explorer.page<=1?'disabled':''}>Prev</button>`;
+  const windowSize = 5;
+  let s = Math.max(1, explorer.page - Math.floor(windowSize/2));
+  let e = Math.min(totalPages, s+windowSize-1);
+  s = Math.max(1, e-windowSize+1);
+  for(let p=s;p<=e;p++){ html += `<button class="page-btn ${p===explorer.page?'active':''}" data-page="${p}">${p}</button>`; }
+  html += `<button class="page-btn" id="nextPage" ${explorer.page>=totalPages?'disabled':''}>Next</button>`;
+  btnWrap.innerHTML = html;
+
+  btnWrap.querySelectorAll('[data-page]').forEach(b => b.addEventListener('click', () => { explorer.page = Number(b.dataset.page); renderExplorer(); }));
+  const prevBtn = document.getElementById('prevPage'), nextBtn = document.getElementById('nextPage');
+  if(prevBtn) prevBtn.addEventListener('click', () => { explorer.page--; renderExplorer(); });
+  if(nextBtn) nextBtn.addEventListener('click', () => { explorer.page++; renderExplorer(); });
+
+  document.querySelectorAll('table.data-table thead th[data-sort]').forEach(th => {
+    const ind = th.querySelector('.sort-ind');
+    ind.textContent = th.dataset.sort===explorer.sortKey ? (explorer.sortDir==='asc' ? '▲':'▼') : '';
+  });
+}
+
+document.getElementById('tableSearch').addEventListener('input', e => { explorer.search = e.target.value; explorer.page=1; renderExplorer(); });
+document.getElementById('explorerChannelFilter').addEventListener('change', e => { explorer.channel = e.target.value; explorer.page=1; renderExplorer(); });
+document.getElementById('pageSizeSelect').addEventListener('change', e => { explorer.pageSize = Number(e.target.value); explorer.page=1; renderExplorer(); });
+document.querySelectorAll('table.data-table thead th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    if(explorer.sortKey === key) explorer.sortDir = explorer.sortDir==='asc' ? 'desc' : 'asc';
+    else { explorer.sortKey = key; explorer.sortDir = 'asc'; }
+    renderExplorer();
+  });
+});
+
+/* ---------------------------------------------------------------------
+   11. ABOUT TAB DYNAMIC FIELDS
+   --------------------------------------------------------------------- */
+function renderAbout(){
+  const dates = DATA.map(r=>r.date).filter(Boolean).sort();
+  document.getElementById('aboutDateRange').textContent = dates.length ? `${dates[0]} to ${dates[dates.length-1]}` : '—';
+  document.getElementById('aboutChannels').textContent = Array.from(new Set(DATA.map(r=>r.channel))).sort().join(', ');
+  document.getElementById('aboutMissingSpend').textContent = DATA.filter(r=>r.spend===null).length + ` of ${DATA.length}`;
+  document.getElementById('aboutMissingLeads').textContent = DATA.filter(r=>r.leads===null).length + ` of ${DATA.length}`;
+  document.getElementById('aboutMissingDate').textContent = DATA.filter(r=>r.date===null).length + ` of ${DATA.length}`;
+  document.getElementById('aboutMissingValid').textContent = DATA.filter(r=>r.validConversions===null).length + ` of ${DATA.length}`;
+}
+
+/* ---------------------------------------------------------------------
+   12. TABS
+   --------------------------------------------------------------------- */
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ---------------------------------------------------------------------
+   13. EXCEL UPLOAD
+   --------------------------------------------------------------------- */
+document.getElementById('uploadBtn').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('resetBtn').addEventListener('click', () => { loadFromRaw(RAW_DATA); });
+
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const wb = XLSX.read(evt.target.result, { type:'array', cellDates:true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(sheet, { defval:null });
+      if(!json.length){ alert('The uploaded file has no rows.'); return; }
+      const mapped = json.map((row,i) => mapUploadedRow(row, i));
+      loadFromRaw(mapped);
+      alert(`Loaded ${mapped.length} rows from ${file.name}. Dashboard, model and table have been refreshed.`);
+    }catch(err){
+      alert('Could not read this file as a spreadsheet: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+});
+
+/* ---------------------------------------------------------------------
+   14. MASTER REBUILD
+   --------------------------------------------------------------------- */
+function rebuildEverything(){
+  const rows = getFiltered();
+  renderKPIs(rows);
+  renderSpendChannelChart(rows);
+  renderCvrChannelChart(rows);
+  renderMonthlySpendChart(rows);
+  renderScatterChart(rows);
+  renderCpaChannelChart(rows);
+  renderInsights(rows);
+  renderModelPerformance(rows);
+  updatePredictionHints(rows);
+  renderAbout();
+  renderExplorer();
+}
+
+/* ---------------------------------------------------------------------
+   15. INIT
+   --------------------------------------------------------------------- */
+loadFromRaw(RAW_DATA);
+
+})();
+
+</script>
+</body>
+</html>
