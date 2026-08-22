@@ -1,0 +1,25 @@
+{
+  "name": "v0-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "dev": "serve . -l tcp://0.0.0.0:3000 --no-clipboard",
+    "start": "serve . -l tcp://0.0.0.0:3000 --no-clipboard"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PolicePatelSanjeevini/Marketing-Campaign-Spend-Analysis.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PolicePatelSanjeevini/Marketing-Campaign-Spend-Analysis/issues"
+  },
+  "homepage": "https://github.com/PolicePatelSanjeevini/Marketing-Campaign-Spend-Analysis#readme",
+  "devDependencies": {
+    "serve": "^14.2.6"
+  }
+}
